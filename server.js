@@ -208,7 +208,7 @@ async function loadScriptsAsync() {
   const seeds = JSON.parse(JSON.stringify(SEED_SCRIPTS));
   const seedIds = seeds.map(s=>s.id);
   const saved = await storeGet("scripts");
-  if (saved && saved.length) {
+  if (saved && Array.isArray(saved) && saved.length) {
     const userCreated = saved.filter(s=>!seedIds.includes(s.id));
     _scriptsCache = seeds.concat(userCreated);
   } else {
@@ -228,7 +228,7 @@ async function saveScripts(arr) {
 // These are hardcoded in memory so Render disk wipes don't affect them
 // saveScripts is now async - see above
 let _logsCache = null;
-async function loadLogsAsync() { _logsCache = (await storeGet("logs")) || []; return _logsCache; }
+async function loadLogsAsync() { const v = await storeGet("logs"); _logsCache = Array.isArray(v) ? v : []; return _logsCache; }
 function loadLogs() { return _logsCache || []; }
 async function saveLogs(arr) { _logsCache = arr; await storeSet("logs", arr); }
 
@@ -283,9 +283,13 @@ async function getGeoInfo(ip) {
 
 // Login logs in memory + MongoDB
 let _loginLogs = [];
-async function loadLoginLogsAsync() { _loginLogs = (await storeGet("login_logs")) || []; }
+async function loadLoginLogsAsync() {
+  const v = await storeGet("login_logs");
+  _loginLogs = Array.isArray(v) ? v : [];
+}
 function loadLoginLogs() { return _loginLogs; }
 async function saveLoginLog(entry) {
+  if (!Array.isArray(_loginLogs)) _loginLogs = [];
   _loginLogs.unshift(entry);
   if (_loginLogs.length > 500) _loginLogs.splice(500);
   await storeSet("login_logs", _loginLogs);
@@ -558,7 +562,7 @@ app.post("/twiml/status",(req,res)=>{
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("✅ Epewon Pro → http://localhost:" + PORT);
-  // Load persisted data from Redis in background after server is up
+  // Load persisted data from Upstash Redis in background
   Promise.all([
     loadAuthAsync(),
     loadSettingsAsync(),
