@@ -162,12 +162,20 @@ const SEED_SCRIPTS = [
 function loadSettings() { return { ...DEF_SETTINGS, ...rj(F.settings, DEF_SETTINGS) }; }
 function saveSettings(d) { wj(F.settings, d); }
 function loadScripts() {
+  const seeds = JSON.parse(JSON.stringify(SEED_SCRIPTS));
+  const seedIds = seeds.map(function(s){ return s.id; });
   try {
-    const s = rj(F.scripts, null);
-    if (s && s.length) return s;
+    const saved = rj(F.scripts, null);
+    if (saved && saved.length) {
+      const merged = seeds.map(function(seed) {
+        const edited = saved.find(function(s){ return s.id === seed.id; });
+        return edited || seed;
+      });
+      const userCreated = saved.filter(function(s){ return !seedIds.includes(s.id); });
+      return merged.concat(userCreated);
+    }
   } catch(e) {}
-  // Disk empty or error - return seeds (do NOT write to disk on Render free tier)
-  return JSON.parse(JSON.stringify(SEED_SCRIPTS));
+  return seeds;
 }
 
 // Endpoint to get the built-in seed templates (always available regardless of disk)
