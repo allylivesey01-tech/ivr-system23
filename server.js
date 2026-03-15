@@ -162,14 +162,16 @@ const SEED_SCRIPTS = [
 function loadSettings() { return { ...DEF_SETTINGS, ...rj(F.settings, DEF_SETTINGS) }; }
 function saveSettings(d) { wj(F.settings, d); }
 function loadScripts() {
-  const s = rj(F.scripts, null);
-  if (!s || !s.length) {
-    const def = JSON.parse(JSON.stringify(SEED_SCRIPTS));
-    wj(F.scripts, def);
-    return def;
-  }
-  return s;
+  try {
+    const s = rj(F.scripts, null);
+    if (s && s.length) return s;
+  } catch(e) {}
+  // Disk empty or error - return seeds (do NOT write to disk on Render free tier)
+  return JSON.parse(JSON.stringify(SEED_SCRIPTS));
 }
+
+// Endpoint to get the built-in seed templates (always available regardless of disk)
+// These are hardcoded in memory so Render disk wipes don't affect them
 function saveScripts(d) { wj(F.scripts, d); }
 function loadLogs() { return rj(F.logs, []); }
 function saveLogs(d) { wj(F.logs, d); }
@@ -319,6 +321,11 @@ app.get("/api/test", async (req, res) => {
 });
 
 // ── Scripts ───────────────────────────────────────────────────────────────────
+
+app.get("/api/seed-scripts", (req, res) => {
+  res.json(JSON.parse(JSON.stringify(SEED_SCRIPTS)));
+});
+
 app.get("/api/scripts",    (req,res) => res.json(loadScripts()));
 app.post("/api/scripts",   (req,res) => {
   const scripts=loadScripts(); const body=req.body;
