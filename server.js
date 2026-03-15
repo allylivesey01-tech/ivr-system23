@@ -54,7 +54,15 @@ const DEF_SCRIPT = {
 
 function loadSettings() { return { ...DEF_SETTINGS, ...rj(F.settings, DEF_SETTINGS) }; }
 function saveSettings(d) { wj(F.settings, d); }
-function loadScripts() { const s = rj(F.scripts, null); return (s && s.length) ? s : [JSON.parse(JSON.stringify(DEF_SCRIPT))]; }
+function loadScripts() {
+  const s = rj(F.scripts, null);
+  if (!s || !s.length) {
+    const def = [JSON.parse(JSON.stringify(DEF_SCRIPT))];
+    wj(F.scripts, def); // Save to disk immediately so it persists
+    return def;
+  }
+  return s;
+}
 function saveScripts(d) { wj(F.scripts, d); }
 function loadLogs() { return rj(F.logs, []); }
 function saveLogs(d) { wj(F.logs, d); }
