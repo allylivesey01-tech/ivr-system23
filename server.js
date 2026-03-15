@@ -10,7 +10,7 @@ const path    = require("path");
 //  edit this file, change false to true below, save (commit).
 //  Render will redeploy in ~2 minutes and you can log in from any IP.
 //  After fixing your IP settings, come back and change it to false again.
-const IP_BYPASS = false;
+const IP_BYPASS = true;
 // ════════════════════════════════════════════════════════════════════════════
 
 const app = express();
