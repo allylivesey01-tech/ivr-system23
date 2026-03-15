@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>IVR Pro — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f8;
+  --panel:#ffffff;
+  --panel2:#f8f9fc;
+  --dark:#0d1117;
+  --dark2:#161b22;
+  --dark3:#1f2937;
+  --border:#e2e6f0;
+  --border-dark:#2d3748;
+  --cyan:#00d4ff;
+  --cyan2:#00a8cc;
+  --green:#00e676;
+  --green2:#00c853;
+  --amber:#ffab00;
+  --red:#ff5252;
+  --purple:#b388ff;
+  --text:#1a202c;
+  --text2:#4a5568;
+  --text3:#a0aec0;
+  --mono:'Share Tech Mono',monospace;
+  --head:'Rajdhani',sans-serif;
+  --body:'Inter',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden}
+button{cursor:pointer;font-family:var(--body)}
+input,select,textarea{font-family:var(--body)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#c0c8d8;border-radius:10px}
+
+/* ── LAYOUT ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:280px;min-width:280px;
+  background:var(--dark);
+  display:flex;flex-direction:column;
+  overflow:hidden;position:relative;
+}
+
+/* Circuit board decoration */
+.sidebar::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+  background-size:24px 24px;
+  pointer-events:none;
+}
+
+/* Robot art SVG in sidebar bottom */
+.robot-art{
+  position:absolute;bottom:0;left:0;right:0;
+  opacity:0.07;pointer-events:none;
+  display:flex;justify-content:center;padding-bottom:10px;
+}
+
+.logo{
+  padding:18px 18px 14px;
+  border-bottom:1px solid var(--border-dark);
+  position:relative;z-index:1;
+}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:36px;height:36px;border-radius:8px;
+  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.logo-icon svg{width:18px;height:18px}
+.logo-name{font-family:var(--head);font-size:20px;font-weight:700;color:#fff;letter-spacing:1px}
+.logo-sub{font-size:10px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.version-badge{display:inline-block;padding:1px 7px;background:#00d4ff18;border:1px solid #00d4ff30;border-radius:10px;font-size:9px;color:var(--cyan);letter-spacing:1px;margin-top:4px}
+
+/* Provider switcher */
+.prov-switcher{
+  margin:12px 14px 6px;
+  position:relative;z-index:1;
+}
+.prov-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.prov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.prov-btn{
+  padding:6px 4px;border:1px solid var(--border-dark);border-radius:6px;
+  background:transparent;color:#8899aa;font-size:10px;font-weight:600;
+  transition:all 0.15s;text-align:center;
+}
+.prov-btn:hover{border-color:#4a6080;color:#ccd}
+.prov-btn.active{
+  background:var(--cyan);border-color:var(--cyan);
+  color:#000;
+}
+.prov-btn.active-sw{background:var(--purple);border-color:var(--purple);color:#000}
+.prov-btn.active-vo{background:#e040fb;border-color:#e040fb;color:#fff}
+.prov-btn.active-pl{background:var(--green);border-color:var(--green);color:#000}
+.prov-btn.active-at{background:var(--amber);border-color:var(--amber);color:#000}
+.prov-btn.active-te{background:#7c4dff;border-color:#7c4dff;color:#fff}
+.prov-status{font-size:10px;color:var(--text3);text-align:center;padding:4px 0 8px;border-bottom:1px solid var(--border-dark);margin:0 14px;position:relative;z-index:1}
+
+/* Dialer */
+.dialer{padding:12px 14px;border-bottom:1px solid var(--border-dark);position:relative;z-index:1}
+.sec-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-label::before{content:'';display:inline-block;width:8px;height:1px;background:var(--cyan)}
+.field{margin-bottom:8px}
+.field label{display:block;font-size:10px;font-weight:600;color:#8899aa;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px}
+.field input,.field select{
+  width:100%;background:#0a0e14;border:1px solid #2d3748;
+  border-radius:6px;padding:8px 10px;color:#e8edf5;font-size:12px;
+  outline:none;transition:border-color 0.15s;font-family:var(--mono);
+}
+.field input:focus,.field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
+.field input::placeholder{color:#3a4a5a}
+.field select option{background:#0d1117}
+
+.btn-call{
+  width:100%;padding:11px;border:none;border-radius:8px;
+  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  color:#000;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.15s;letter-spacing:0.5px;font-family:var(--head);
+  margin-top:8px;
+}
+.btn-call:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-call:active{transform:scale(0.98)}
+.btn-call:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+.btn-test{
+  width:100%;margin-top:6px;padding:7px;background:transparent;
+  border:1px solid #2d3748;border-radius:6px;color:#8899aa;
+  font-size:11px;transition:all 0.15s;
+}
+.btn-test:hover{border-color:var(--cyan);color:var(--cyan)}
+
+.msg-box{
+  margin-top:8px;padding:8px 10px;border-radius:6px;
+  font-size:11px;font-weight:500;display:none;line-height:1.5;
+}
+.msg-box.err{background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);color:var(--red);display:block}
+.msg-box.ok{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);display:block}
+.msg-box.info{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--cyan);display:block}
+
+/* Stats */
+.stats{padding:10px 14px 0;position:relative;z-index:1}
+.stats-row{display:flex;gap:6px}
+.stat{
+  flex:1;background:#0a0e14;border:1px solid #1e2a38;
+  border-radius:8px;padding:8px 6px;text-align:center;
+}
+.stat-n{font-size:22px;font-weight:700;font-family:var(--head);letter-spacing:1px}
+.stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px}
+
+.live-pill{
+  margin:10px 0 0;padding:5px 10px;
+  background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);
+  border-radius:20px;display:flex;align-items:center;gap:6px;
+  font-size:10px;color:var(--green);font-family:var(--mono);
+}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+/* Tabs */
+.tabbar{
+  display:flex;padding:0 20px;
+  background:var(--panel);
+  border-bottom:2px solid var(--border);
+  gap:0;
+}
+.tab{
+  padding:14px 18px;font-size:13px;font-weight:600;color:var(--text2);
+  border:none;background:none;border-bottom:3px solid transparent;
+  cursor:pointer;transition:all 0.15s;margin-bottom:-2px;
+  font-family:var(--head);letter-spacing:0.5px;font-size:14px;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:#00a8cc;border-bottom-color:#00d4ff}
+
+/* Panels */
+.panel{flex:1;overflow-y:auto;display:none;padding:20px}
+.panel.active{display:block}
+
+/* Panel header */
+.ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.ph-title{font-family:var(--head);font-size:22px;font-weight:700;letter-spacing:0.5px}
+.ph-sub{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* ── MONITOR ── */
+.mon-grid{display:flex;flex-direction:column;gap:12px}
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 20px;text-align:center;color:var(--text3);
+}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:0.3}
+.empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.empty-sub{font-size:13px;line-height:1.6}
+
+/* Call card */
+.ccard{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;transition:border-color 0.2s;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+}
+.ccard.s-in-progress{border-color:var(--cyan2);box-shadow:0 0 0 3px rgba(0,212,255,0.08)}
+.ccard.s-completed{border-color:var(--green2)}
+.ccard.s-cancelled,.ccard.s-failed,.ccard.s-no-answer,.ccard.s-busy,.ccard.s-ended-by-user{border-color:rgba(255,82,82,0.4)}
+.ccard-head{
+  padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start;
+  background:linear-gradient(135deg,#f8faff,#fff);
+  border-bottom:1px solid var(--border);
+}
+.cphone{font-size:18px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.clabel{font-size:11px;color:var(--text2);margin-top:3px}
+.ccard-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.ctime{font-size:10px;color:var(--text3)}
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:20px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;
+}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.bdot-pulse{animation:pulse 1s infinite}
+.badge-initiated,.badge-ringing{background:rgba(255,171,0,0.12);color:var(--amber)}
+.badge-in-progress{background:rgba(0,212,255,0.12);color:var(--cyan2)}
+.badge-completed{background:rgba(0,230,118,0.12);color:var(--green2)}
+.badge-cancelled,.badge-failed,.badge-no-answer,.badge-busy,.badge-ended-by-user{background:rgba(255,82,82,0.12);color:var(--red)}
+.ccard-body{padding:14px 18px}
+.prog-track{display:flex;gap:5px;margin-bottom:12px}
+.pseg{height:4px;flex:1;border-radius:2px;background:var(--border);transition:background 0.3s}
+.pseg.done{background:var(--green)}
+.pseg.active{background:var(--cyan);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.coll-list{display:flex;flex-direction:column;gap:6px}
+.coll-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;
+}
+.ci-lbl{font-size:10px;color:var(--text2);flex:1;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.ci-val{
+  font-family:var(--mono);font-size:15px;font-weight:600;color:#00a8cc;
+  background:rgba(0,212,255,0.08);padding:3px 10px;border-radius:5px;letter-spacing:2px;
+}
+.ci-t{font-size:10px;color:var(--text3)}
+.ccard-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;border-top:1px solid var(--border);background:var(--panel2);
+}
+.cdetail-txt{font-size:11px;color:var(--text2)}
+.cactions{display:flex;gap:6px}
+.btn-sm{
+  padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;
+  border:1px solid var(--border);background:none;color:var(--text2);
+  cursor:pointer;transition:all 0.15s;
+}
+.btn-sm:hover{border-color:var(--cyan2);color:var(--cyan2)}
+.btn-sm.end-call{border-color:rgba(255,82,82,0.4);color:var(--red)}
+.btn-sm.end-call:hover{background:rgba(255,82,82,0.08)}
+.status-line{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-top:8px}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--amber);display:inline-block}
+.sdot.active{animation:pulse 1s infinite}
+
+/* ── SCRIPTS ── */
+.script-lib{display:flex;gap:10px;margin-bottom:16px;overflow-x:auto;padding-bottom:6px;flex-wrap:nowrap}
+.scard{
+  background:var(--panel);border:2px solid var(--border);
+  border-radius:12px;padding:14px;min-width:165px;max-width:165px;
+  cursor:pointer;transition:all 0.15s;flex-shrink:0;position:relative;
+  box-shadow:0 2px 6px rgba(0,0,0,0.06);
+}
+.scard:hover{border-color:#a0c0e0;transform:translateY(-2px)}
+.scard.selected{border-color:var(--cyan2);background:#f0fbff}
+.scard.is-default .scard-name::after{content:" ★";color:var(--amber);font-size:11px}
+.scard-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.scard-meta{font-size:10px;color:var(--text3)}
+.scard-btns{display:flex;gap:4px;margin-top:10px}
+.btn-scard{
+  padding:3px 7px;border-radius:5px;font-size:10px;font-weight:600;
+  border:1px solid var(--border);background:none;color:var(--text2);cursor:pointer;transition:all 0.15s;
+}
+.btn-scard:hover{border-color:var(--cyan2);color:var(--cyan2)}
+.btn-scard.setdef{border-color:rgba(255,171,0,0.4);color:var(--amber)}
+.btn-scard.setdef:hover{background:rgba(255,171,0,0.08)}
+.btn-scard.del:hover{border-color:var(--red);color:var(--red)}
+.scard-new{
+  border-style:dashed;border-color:#b0bec5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;color:var(--text3);
+}
+.scard-new:hover{border-color:var(--cyan2);color:var(--cyan2);background:rgba(0,212,255,0.04)}
+.scard-new-icon{font-size:24px;opacity:0.5}
+
+.ssec{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:12px;padding:18px;margin-bottom:14px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.04);
+}
+.ssec-title{
+  font-family:var(--head);font-size:15px;font-weight:700;
+  margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:8px;
+}
+.ssec-title::before{content:'';display:inline-block;width:3px;height:16px;background:var(--cyan2);border-radius:2px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ff{display:flex;flex-direction:column;gap:4px}
+.ff.full{grid-column:1/-1}
+.ff label{font-size:11px;font-weight:600;color:var(--text2)}
+.ff input,.ff select,.ff textarea{
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;
+  outline:none;resize:vertical;transition:border-color 0.15s;
+}
+.ff textarea{min-height:64px;line-height:1.5}
+.ff input:focus,.ff select:focus,.ff textarea:focus{border-color:var(--cyan2)}
+.ff input::placeholder,.ff textarea::placeholder{color:var(--text3)}
+
+.step-card{
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:10px;padding:14px;margin-bottom:8px;
+}
+.step-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.step-num{
+  width:24px;height:24px;border-radius:50%;
+  background:var(--cyan2);color:#fff;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step-name{
+  flex:1;background:transparent;border:none;border-bottom:1px solid var(--border);
+  color:var(--text);font-size:13px;font-weight:700;padding:2px 0;outline:none;
+  transition:border-color 0.15s;
+}
+.step-name:focus{border-bottom-color:var(--cyan2)}
+.btn-rm{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 3px;transition:color 0.15s}
+.btn-rm:hover{color:var(--red)}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sf{display:flex;flex-direction:column;gap:3px}
+.sf.full{grid-column:1/-1}
+.sf label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.sf input,.sf textarea{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:7px;padding:7px 10px;color:var(--text);font-size:12px;
+  outline:none;resize:vertical;transition:border-color 0.15s;
+}
+.sf input:focus,.sf textarea:focus{border-color:var(--cyan2)}
+.sf input::placeholder,.sf textarea::placeholder{color:var(--text3)}
+
+.btn-add{
+  width:100%;padding:9px;background:none;border:2px dashed var(--border);
+  border-radius:8px;color:var(--text2);font-size:12px;cursor:pointer;
+  transition:all 0.15s;margin-bottom:4px;
+}
+.btn-add:hover{border-color:var(--cyan2);color:var(--cyan2)}
+
+.save-row{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn-save{
+  padding:10px 22px;background:var(--cyan2);color:#fff;border:none;
+  border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all 0.15s;font-family:var(--head);letter-spacing:0.5px;
+}
+.btn-save:hover{background:var(--cyan);transform:translateY(-1px)}
+.btn-save.secondary{background:var(--panel);border:2px solid var(--cyan2);color:var(--cyan2)}
+.btn-save.secondary:hover{background:rgba(0,168,204,0.08)}
+.saved-ok{font-size:12px;color:var(--green2);display:none;font-weight:600}
+.saved-ok.show{display:block}
+
+.script-name-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+.sname-input{
+  flex:1;background:var(--panel);border:2px solid var(--border);
+  border-radius:9px;padding:10px 14px;color:var(--text);
+  font-size:17px;font-weight:700;outline:none;font-family:var(--head);
+  transition:border-color 0.15s;letter-spacing:0.5px;
+}
+.sname-input:focus{border-color:var(--cyan2)}
+
+/* ── LOGS ── */
+.logs-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.btn-danger{
+  padding:7px 16px;background:none;border:1px solid rgba(255,82,82,0.4);
+  border-radius:7px;color:var(--red);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;
+}
+.btn-danger:hover{background:rgba(255,82,82,0.08)}
+.log-wrap{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.log-table{width:100%;border-collapse:collapse}
+.log-table th{
+  font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:0.8px;padding:10px 14px;text-align:left;
+  background:var(--panel2);border-bottom:1px solid var(--border);
+}
+.log-table td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.log-table tr:last-child td{border-bottom:none}
+.log-table tr:hover td{background:var(--panel2)}
+.no-logs{text-align:center;padding:50px;color:var(--text3);font-size:13px}
+.log-expand-btn{color:var(--cyan2);font-size:11px;cursor:pointer;font-weight:600;background:none;border:none;padding:0}
+.log-expand-btn:hover{text-decoration:underline}
+.log-detail-row{display:none}
+.log-detail-row.open{display:table-row}
+.log-detail-cell{padding:10px 14px!important;background:var(--panel2);border-bottom:1px solid var(--border)}
+.detail-chips{display:flex;flex-wrap:wrap;gap:8px}
+.detail-chip{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.dc-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.dc-val{font-family:var(--mono);font-size:14px;color:var(--cyan2);margin-top:3px;letter-spacing:1px}
+.dur-badge{font-family:var(--mono);color:var(--text2);font-size:11px}
+
+/* ── SETTINGS ── */
+.cfg-sec{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+.cfg-title{font-family:var(--head);font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.cfg-title::before{content:'';display:inline-block;width:3px;height:16px;background:var(--cyan2);border-radius:2px}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cfg-full{grid-column:1/-1}
+.cf{display:flex;flex-direction:column;gap:4px}
+.cf label{font-size:11px;font-weight:600;color:var(--text2)}
+.cf input,.cf select{
+  background:var(--panel2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 11px;color:var(--text);font-size:13px;
+  outline:none;transition:border-color 0.15s;
+}
+.cf input:focus,.cf select:focus{border-color:var(--cyan2)}
+.cf input::placeholder{color:var(--text3)}
+.cf .note{font-size:10px;color:var(--text3);margin-top:3px;line-height:1.4}
+.cf .note a{color:var(--cyan2);text-decoration:none}
+.cf .note a:hover{text-decoration:underline}
+.url-row{display:flex;gap:6px}
+.btn-auto{
+  padding:9px 11px;background:none;border:1px solid var(--border);
+  border-radius:8px;color:var(--text2);font-size:11px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:all 0.15s;
+}
+.btn-auto:hover{border-color:var(--cyan2);color:var(--cyan2)}
+.prov-section{display:none}
+.prov-section.show{display:contents}
+.provider-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:10px;
+}
+.badge-twilio{background:rgba(0,212,255,0.1);color:var(--cyan2);border:1px solid rgba(0,212,255,0.2)}
+.badge-sw{background:rgba(179,136,255,0.1);color:var(--purple);border:1px solid rgba(179,136,255,0.2)}
+.badge-vonage{background:rgba(224,64,251,0.1);color:#e040fb;border:1px solid rgba(224,64,251,0.2)}
+.badge-plivo{background:rgba(0,230,118,0.1);color:var(--green2);border:1px solid rgba(0,230,118,0.2)}
+.badge-at{background:rgba(255,171,0,0.1);color:var(--amber);border:1px solid rgba(255,171,0,0.2)}
+.badge-te{background:rgba(124,77,255,0.1);color:#7c4dff;border:1px solid rgba(124,77,255,0.2)}
+.nigeria-note{
+  background:rgba(255,171,0,0.08);border:1px solid rgba(255,171,0,0.25);
+  border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px;
+  color:var(--text2);line-height:1.7;
+}
+.nigeria-note strong{color:var(--amber)}
+.voice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.vo{
+  position:relative;padding:10px 11px;background:var(--panel2);
+  border:2px solid var(--border);border-radius:9px;cursor:pointer;transition:all 0.15s;
+}
+.vo:has(input:checked){border-color:var(--cyan2);background:#f0fbff}
+.vo input{position:absolute;opacity:0;width:0;height:0}
+.vo-name{font-size:12px;font-weight:700;color:var(--text)}
+.vo-desc{font-size:10px;color:var(--text2);margin-top:1px}
+.vo-tag{font-size:9px;padding:1px 6px;border-radius:3px;margin-top:3px;display:inline-block;font-weight:600}
+.tag-free{background:rgba(0,230,118,0.1);color:var(--green2)}
+.tag-natural{background:rgba(0,212,255,0.1);color:var(--cyan2)}
+.tag-premium{background:rgba(179,136,255,0.1);color:var(--purple)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+
+  <!-- Robot art background -->
+  <div class="robot-art">
+    <svg width="220" height="280" viewBox="0 0 220 280" fill="none">
+      <!-- Robot head -->
+      <rect x="60" y="20" width="100" height="80" rx="12" stroke="white" stroke-width="1.5"/>
+      <!-- Eyes -->
+      <circle cx="85" cy="50" r="12" stroke="white" stroke-width="1.5"/>
+      <circle cx="135" cy="50" r="12" stroke="white" stroke-width="1.5"/>
+      <circle cx="85" cy="50" r="5" fill="white" opacity="0.5"/>
+      <circle cx="135" cy="50" r="5" fill="white" opacity="0.5"/>
+      <!-- Mouth panel -->
+      <rect x="78" y="72" width="64" height="16" rx="3" stroke="white" stroke-width="1"/>
+      <line x1="88" y1="72" x2="88" y2="88" stroke="white" stroke-width="0.8"/>
+      <line x1="100" y1="72" x2="100" y2="88" stroke="white" stroke-width="0.8"/>
+      <line x1="112" y1="72" x2="112" y2="88" stroke="white" stroke-width="0.8"/>
+      <line x1="124" y1="72" x2="124" y2="88" stroke="white" stroke-width="0.8"/>
+      <!-- Antenna -->
+      <line x1="110" y1="20" x2="110" y2="4" stroke="white" stroke-width="1.5"/>
+      <circle cx="110" cy="4" r="3" fill="white" opacity="0.6"/>
+      <!-- Neck -->
+      <rect x="95" y="100" width="30" height="14" rx="3" stroke="white" stroke-width="1"/>
+      <!-- Body -->
+      <rect x="40" y="114" width="140" height="100" rx="12" stroke="white" stroke-width="1.5"/>
+      <!-- Chest panels -->
+      <rect x="60" y="128" width="40" height="30" rx="5" stroke="white" stroke-width="1"/>
+      <rect x="120" y="128" width="40" height="30" rx="5" stroke="white" stroke-width="1"/>
+      <!-- Center panel -->
+      <rect x="90" y="134" width="40" height="50" rx="5" stroke="white" stroke-width="1"/>
+      <circle cx="110" cy="159" r="10" stroke="white" stroke-width="1"/>
+      <circle cx="110" cy="159" r="4" fill="white" opacity="0.3"/>
+      <!-- Arms -->
+      <rect x="4" y="120" width="32" height="70" rx="10" stroke="white" stroke-width="1.5"/>
+      <rect x="184" y="120" width="32" height="70" rx="10" stroke="white" stroke-width="1.5"/>
+      <!-- Legs -->
+      <rect x="55" y="214" width="38" height="60" rx="8" stroke="white" stroke-width="1.5"/>
+      <rect x="127" y="214" width="38" height="60" rx="8" stroke="white" stroke-width="1.5"/>
+      <!-- Circuit lines -->
+      <line x1="40" y1="145" x2="4" y2="145" stroke="white" stroke-width="0.8" stroke-dasharray="3 3"/>
+      <line x1="180" y1="145" x2="216" y2="145" stroke="white" stroke-width="0.8" stroke-dasharray="3 3"/>
+    </svg>
+  </div>
+
+  <div class="logo">
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.14a16 16 0 006.29 6.29l1.42-1.42a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name" id="co-name">IVR PRO</div>
+        <div class="logo-sub">Command Center</div>
+      </div>
+    </div>
+    <div class="version-badge" id="co-sub">NOT CONFIGURED</div>
+  </div>
+
+  <!-- Provider Toggle -->
+  <div class="prov-switcher">
+    <div class="prov-label">Active Provider</div>
+    <div class="prov-grid">
+      <button class="prov-btn" id="pbtn-twilio" onclick="switchProvider('twilio')">Twilio</button>
+      <button class="prov-btn" id="pbtn-signalwire" onclick="switchProvider('signalwire')">Signal</button>
+      <button class="prov-btn" id="pbtn-vonage" onclick="switchProvider('vonage')">Vonage</button>
+      <button class="prov-btn" id="pbtn-plivo" onclick="switchProvider('plivo')">Plivo</button>
+      <button class="prov-btn" id="pbtn-africastalking" onclick="switchProvider('africastalking')">Africa's</button>
+      <button class="prov-btn" id="pbtn-telnyx" onclick="switchProvider('telnyx')">Telnyx</button>
+    </div>
+  </div>
+  <div class="prov-status" id="prov-status">Select a provider above</div>
+
+  <!-- Dialer -->
+  <div class="dialer">
+    <div class="sec-label">New Call</div>
+    <div class="field">
+      <label>Customer Phone Number</label>
+      <input type="tel" id="phoneInput" placeholder="+1 555 000 0000"/>
+    </div>
+    <div class="field">
+      <label>Label (optional)</label>
+      <input type="text" id="labelInput" placeholder="e.g. Invoice #042"/>
+    </div>
+    <div class="field">
+      <label>Script</label>
+      <select id="scriptSelect"></select>
+    </div>
+    <button class="btn-call" id="callBtn" onclick="initiateCall()">
+      <span id="callBtnIcon">📲</span>
+      <span id="callBtnText">CALL NOW</span>
+    </button>
+    <button class="btn-test" onclick="testConn()">🔍 Test Connection</button>
+    <div class="msg-box" id="callMsg"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-n" id="st-active" style="color:#00d4ff">0</div>
+        <div class="stat-l">Active</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n" id="st-total" style="color:#b388ff">0</div>
+        <div class="stat-l">Today</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n" id="st-done" style="color:#00e676">0</div>
+        <div class="stat-l">Done</div>
+      </div>
+    </div>
+    <div class="live-pill"><div class="dot"></div>LIVE MONITORING</div>
+  </div>
+
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+  <div class="tabbar">
+    <button class="tab active" onclick="switchTab('monitor',this)">📊 Monitor</button>
+    <button class="tab" onclick="switchTab('scripts',this)">📋 Scripts</button>
+    <button class="tab" onclick="switchTab('logs',this)">📁 Logs</button>
+    <button class="tab" onclick="switchTab('settings',this)">⚙️ Settings</button>
+  </div>
+
+  <!-- MONITOR -->
+  <div id="panel-monitor" class="panel active">
+    <div class="ph">
+      <div>
+        <div class="ph-title">Live Call Monitor</div>
+        <div class="ph-sub">Calls update in real time every 2 seconds</div>
+      </div>
+    </div>
+    <div id="mon-grid" class="mon-grid">
+      <div class="empty-state" id="empty-mon">
+        <div class="empty-icon">📵</div>
+        <div class="empty-title">No active calls</div>
+        <div class="empty-sub">Enter a phone number in the sidebar<br>and click CALL NOW to get started</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <div id="panel-scripts" class="panel">
+    <div class="ph">
+      <div>
+        <div class="ph-title">Script Builder</div>
+        <div class="ph-sub">Save multiple scripts and select one per call</div>
+      </div>
+    </div>
+    <div id="script-lib" class="script-lib"></div>
+    <div class="script-name-bar">
+      <input class="sname-input" id="sname" placeholder="Script name..."/>
+    </div>
+    <div class="ssec">
+      <div class="ssec-title">Opening Greeting</div>
+      <div class="fg">
+        <div class="ff full"><label>What the bot says first</label><textarea id="s-gmsg" rows="2"></textarea></div>
+        <div class="ff"><label>Timeout (seconds)</label><input type="number" id="s-gtimeout" value="10" min="5" max="60"/></div>
+        <div class="ff"><label>No-input message</label><input type="text" id="s-gnoinput"/></div>
+      </div>
+    </div>
+    <div class="ssec">
+      <div class="ssec-title">Collection Steps</div>
+      <div id="steps-list"></div>
+      <button class="btn-add" onclick="addStep()">+ Add Another Step</button>
+    </div>
+    <div class="ssec">
+      <div class="ssec-title">Completion Messages</div>
+      <div class="fg">
+        <div class="ff full"><label>✅ Success — all steps completed</label><textarea id="s-success" rows="2"></textarea></div>
+        <div class="ff full"><label>❌ Cancel — caller pressed 2</label><textarea id="s-cancel" rows="2"></textarea></div>
+        <div class="ff full"><label>⏱ Timeout — no input received</label><textarea id="s-error" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="save-row">
+      <button class="btn-save" onclick="saveScript()">💾 Save Script</button>
+      <button class="btn-save secondary" onclick="saveAsNew()">＋ Save as New</button>
+      <span class="saved-ok" id="script-saved">✓ Saved!</span>
+    </div>
+  </div>
+
+  <!-- LOGS -->
+  <div id="panel-logs" class="panel">
+    <div class="ph">
+      <div><div class="ph-title">Call Logs</div><div class="ph-sub">Full history with collected data</div></div>
+      <button class="btn-danger" onclick="clearAllLogs()">🗑 Clear All</button>
+    </div>
+    <div id="logs-container"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="panel-settings" class="panel">
+    <div class="ph"><div><div class="ph-title">Settings</div><div class="ph-sub">Configure providers, voice and credentials</div></div></div>
+
+    <!-- Nigeria note -->
+    <div class="nigeria-note">
+      <strong>📌 Nigeria-friendly providers:</strong> If Twilio verification is too difficult,
+      <strong>Africa's Talking</strong> is an African company — very easy signup for Nigerians, works excellently in Nigeria.
+      <strong>Plivo</strong> and <strong>Telnyx</strong> also have lighter verification requirements.
+      All providers below are configured the same way — enter credentials and switch using the buttons on the left sidebar.
+    </div>
+
+    <!-- General -->
+    <div class="cfg-sec">
+      <div class="cfg-title">General</div>
+      <div class="cfg-grid">
+        <div class="cf cfg-full"><label>Company Name</label><input type="text" id="cfg-company" placeholder="My Company"/></div>
+        <div class="cf"><label>Language</label>
+          <select id="cfg-lang">
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="en-AU">English (Australia)</option>
+            <option value="fr-FR">French</option>
+            <option value="de-DE">German</option>
+            <option value="es-ES">Spanish (Spain)</option>
+            <option value="es-MX">Spanish (Mexico)</option>
+            <option value="pt-BR">Portuguese (Brazil)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Twilio -->
+    <div class="cfg-sec">
+      <div class="cfg-title">
+        <span class="provider-badge badge-twilio">📞 Twilio</span>
+      </div>
+      <div class="cfg-grid">
+        <div class="cf"><label>Account SID</label><input type="text" id="tw-sid" placeholder="ACxxxxxxxxxxxxxxxx"/><span class="note">From <a href="https://console.twilio.com" target="_blank">console.twilio.com</a> → Dashboard</span></div>
+        <div class="cf"><label>Auth Token</label><input type="password" id="tw-token" placeholder="Your auth token"/></div>
+        <div class="cf"><label>Phone Number (From)</label><input type="tel" id="tw-from" placeholder="+15551234567"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="tw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('tw-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- SignalWire -->
+    <div class="cfg-sec">
+      <div class="cfg-title"><span class="provider-badge badge-sw">⚡ SignalWire</span></div>
+      <div class="cfg-grid">
+        <div class="cf"><label>Project ID</label><input type="text" id="sw-pid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx"/></div>
+        <div class="cf"><label>Auth Token</label><input type="password" id="sw-token" placeholder="Your auth token"/></div>
+        <div class="cf"><label>Phone Number</label><input type="tel" id="sw-from" placeholder="+15551234567"/></div>
+        <div class="cf"><label>Space URL</label><input type="text" id="sw-space" placeholder="yourspace.signalwire.com"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="sw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('sw-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- Vonage -->
+    <div class="cfg-sec">
+      <div class="cfg-title"><span class="provider-badge badge-vonage">💜 Vonage</span></div>
+      <div class="cfg-grid">
+        <div class="cf"><label>API Key</label><input type="text" id="vo-key" placeholder="Your API key"/><span class="note">From <a href="https://dashboard.nexmo.com" target="_blank">dashboard.nexmo.com</a></span></div>
+        <div class="cf"><label>API Secret</label><input type="password" id="vo-secret" placeholder="Your API secret"/></div>
+        <div class="cf"><label>Phone Number</label><input type="tel" id="vo-from" placeholder="+15551234567"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="vo-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('vo-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- Plivo -->
+    <div class="cfg-sec">
+      <div class="cfg-title"><span class="provider-badge badge-plivo">🟢 Plivo</span></div>
+      <div class="cfg-grid">
+        <div class="cf"><label>Auth ID</label><input type="text" id="pl-authid" placeholder="Your Auth ID"/><span class="note">From <a href="https://console.plivo.com" target="_blank">console.plivo.com</a> → Overview</span></div>
+        <div class="cf"><label>Auth Token</label><input type="password" id="pl-token" placeholder="Your auth token"/></div>
+        <div class="cf"><label>Phone Number</label><input type="tel" id="pl-from" placeholder="+15551234567"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="pl-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('pl-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- Africa's Talking -->
+    <div class="cfg-sec">
+      <div class="cfg-title"><span class="provider-badge badge-at">🌍 Africa's Talking</span></div>
+      <div class="cfg-grid">
+        <div class="cf"><label>Username</label><input type="text" id="at-user" placeholder="Your username"/><span class="note">Sign up at <a href="https://africastalking.com" target="_blank">africastalking.com</a> — easy for Nigerians</span></div>
+        <div class="cf"><label>API Key</label><input type="password" id="at-key" placeholder="Your API key"/></div>
+        <div class="cf"><label>Phone Number (Caller ID)</label><input type="tel" id="at-from" placeholder="+234 or shortcode"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="at-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('at-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- Telnyx -->
+    <div class="cfg-sec">
+      <div class="cfg-title"><span class="provider-badge badge-te">🔷 Telnyx</span></div>
+      <div class="cfg-grid">
+        <div class="cf"><label>API Key</label><input type="password" id="te-key" placeholder="KEY..."/><span class="note">From <a href="https://portal.telnyx.com" target="_blank">portal.telnyx.com</a> → API Keys</span></div>
+        <div class="cf"><label>Phone Number</label><input type="tel" id="te-from" placeholder="+15551234567"/></div>
+        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="te-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('te-url')">Auto</button></div></div>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="cfg-sec">
+      <div class="cfg-title">Voice</div>
+      <div class="voice-grid" id="voice-grid"></div>
+    </div>
+
+    <div class="save-row">
+      <button class="btn-save" onclick="saveSettings()">💾 Save All Settings</button>
+      <span class="saved-ok" id="settings-saved">✓ Saved!</span>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+// ─── Voice list ───────────────────────────────────────────────────────────────
+var VOICES = [
+  {id:"alice",name:"Alice",desc:"Standard female",tag:"free",g:"F"},
+  {id:"woman",name:"Woman",desc:"Basic female",tag:"free",g:"F"},
+  {id:"man",name:"Man",desc:"Basic male",tag:"free",g:"M"},
+  {id:"Polly.Joanna",name:"Joanna",desc:"US English female",tag:"natural",g:"F"},
+  {id:"Polly.Matthew",name:"Matthew",desc:"US English male",tag:"natural",g:"M"},
+  {id:"Polly.Amy",name:"Amy",desc:"British female",tag:"natural",g:"F"},
+  {id:"Polly.Brian",name:"Brian",desc:"British male",tag:"natural",g:"M"},
+  {id:"Polly.Salli",name:"Salli",desc:"US female neural",tag:"premium",g:"F"},
+  {id:"Polly.Joey",name:"Joey",desc:"US male neural",tag:"premium",g:"M"},
+  {id:"Polly.Nicole",name:"Nicole",desc:"Australian female",tag:"natural",g:"F"},
+  {id:"Polly.Russell",name:"Russell",desc:"Australian male",tag:"natural",g:"M"}
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+var settings = {};
+var scripts = [];
+var sessions = [];
+var logs = [];
+var editingId = null;
+var editingSteps = [];
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'logs') loadLogs();
+}
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+function switchProvider(p) {
+  settings.provider = p;
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({provider: p})
+  });
+  updateProviderUI(p);
+}
+
+function updateProviderUI(p) {
+  var names = {twilio:'Twilio',signalwire:'SignalWire',vonage:'Vonage',plivo:'Plivo',africastalking:"Africa's Talking",telnyx:'Telnyx'};
+  document.querySelectorAll('.prov-btn').forEach(function(b){ b.className='prov-btn'; });
+  var btn = document.getElementById('pbtn-' + p);
+  if (btn) {
+    var cls = {twilio:'active',signalwire:'active-sw',vonage:'active-vo',plivo:'active-pl',africastalking:'active-at',telnyx:'active-te'};
+    btn.className = 'prov-btn ' + (cls[p]||'active');
+  }
+  document.getElementById('prov-status').textContent = 'Using: ' + (names[p]||p);
+  document.getElementById('co-sub').textContent = (names[p]||p).toUpperCase() + ' ACTIVE';
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function loadSettingsUI() {
+  fetch('/api/settings').then(function(r){ return r.json(); }).then(function(s) {
+    settings = s;
+    document.getElementById('cfg-company').value = s.companyName || '';
+    document.getElementById('cfg-lang').value = s.language || 'en-US';
+    var tw = s.twilio || {};
+    document.getElementById('tw-sid').value = tw.accountSid || '';
+    document.getElementById('tw-token').value = tw.authToken || '';
+    document.getElementById('tw-from').value = tw.fromNumber || '';
+    document.getElementById('tw-url').value = tw.baseUrl || '';
+    var sw = s.signalwire || {};
+    document.getElementById('sw-pid').value = sw.projectId || '';
+    document.getElementById('sw-token').value = sw.authToken || '';
+    document.getElementById('sw-from').value = sw.fromNumber || '';
+    document.getElementById('sw-space').value = sw.spaceUrl || '';
+    document.getElementById('sw-url').value = sw.baseUrl || '';
+    var vo = s.vonage || {};
+    document.getElementById('vo-key').value = vo.apiKey || '';
+    document.getElementById('vo-secret').value = vo.apiSecret || '';
+    document.getElementById('vo-from').value = vo.fromNumber || '';
+    document.getElementById('vo-url').value = vo.baseUrl || '';
+    var pl = s.plivo || {};
+    document.getElementById('pl-authid').value = pl.authId || '';
+    document.getElementById('pl-token').value = pl.authToken || '';
+    document.getElementById('pl-from').value = pl.fromNumber || '';
+    document.getElementById('pl-url').value = pl.baseUrl || '';
+    var at = s.africastalking || {};
+    document.getElementById('at-user').value = at.username || '';
+    document.getElementById('at-key').value = at.apiKey || '';
+    document.getElementById('at-from').value = at.fromNumber || '';
+    document.getElementById('at-url').value = at.baseUrl || '';
+    var te = s.telnyx || {};
+    document.getElementById('te-key').value = te.apiKey || '';
+    document.getElementById('te-from').value = te.fromNumber || '';
+    document.getElementById('te-url').value = te.baseUrl || '';
+    document.getElementById('co-name').textContent = s.companyName || 'IVR PRO';
+    renderVoices(s.voice || 'alice');
+    updateProviderUI(s.provider || 'twilio');
+  });
+}
+
+function saveSettings() {
+  var payload = {
+    companyName: document.getElementById('cfg-company').value,
+    language: document.getElementById('cfg-lang').value,
+    voice: (document.querySelector('input[name="voice"]:checked') || {value:'alice'}).value,
+    twilio: {
+      accountSid: document.getElementById('tw-sid').value,
+      authToken:  document.getElementById('tw-token').value,
+      fromNumber: document.getElementById('tw-from').value,
+      baseUrl:    document.getElementById('tw-url').value
+    },
+    signalwire: {
+      projectId:  document.getElementById('sw-pid').value,
+      authToken:  document.getElementById('sw-token').value,
+      fromNumber: document.getElementById('sw-from').value,
+      spaceUrl:   document.getElementById('sw-space').value,
+      baseUrl:    document.getElementById('sw-url').value
+    },
+    vonage: {
+      apiKey:     document.getElementById('vo-key').value,
+      apiSecret:  document.getElementById('vo-secret').value,
+      fromNumber: document.getElementById('vo-from').value,
+      baseUrl:    document.getElementById('vo-url').value
+    },
+    plivo: {
+      authId:     document.getElementById('pl-authid').value,
+      authToken:  document.getElementById('pl-token').value,
+      fromNumber: document.getElementById('pl-from').value,
+      baseUrl:    document.getElementById('pl-url').value
+    },
+    africastalking: {
+      username:   document.getElementById('at-user').value,
+      apiKey:     document.getElementById('at-key').value,
+      fromNumber: document.getElementById('at-from').value,
+      baseUrl:    document.getElementById('at-url').value
+    },
+    telnyx: {
+      apiKey:     document.getElementById('te-key').value,
+      fromNumber: document.getElementById('te-from').value,
+      baseUrl:    document.getElementById('te-url').value
+    }
+  };
+  fetch('/api/settings', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(){ showSaved('settings-saved'); document.getElementById('co-name').textContent = payload.companyName||'IVR PRO'; });
+}
+
+function renderVoices(sel) {
+  document.getElementById('voice-grid').innerHTML = VOICES.map(function(v) {
+    return '<label class="vo"><input type="radio" name="voice" value="' + v.id + '" ' + (v.id===sel?'checked':'') + '>' +
+      '<div class="vo-name">' + v.name + ' <span style="font-size:9px;color:var(--text3)">' + v.g + '</span></div>' +
+      '<div class="vo-desc">' + v.desc + '</div>' +
+      '<span class="vo-tag tag-' + v.tag + '">' + (v.tag==='free'?'Free':v.tag==='natural'?'Natural':'Neural') + '</span>' +
+      '</label>';
+  }).join('');
+}
+
+function autoDetect(id) { document.getElementById(id).value = window.location.origin; }
+
+// ─── Scripts ──────────────────────────────────────────────────────────────────
+function loadScriptsUI() {
+  fetch('/api/scripts').then(function(r){ return r.json(); }).then(function(s) {
+    scripts = s;
+    renderScriptLib();
+    renderScriptSelect();
+    var def = scripts.find(function(x){ return x.isDefault; }) || scripts[0];
+    if (def) loadScriptEditor(def);
+  });
+}
+
+function renderScriptLib() {
+  var html = scripts.map(function(s) {
+    var delBtn = scripts.length > 1 ? '<button class="btn-scard del" onclick="event.stopPropagation();deleteScript(\'' + s.id + '\')">Del</button>' : '';
+    return '<div class="scard' + (s.id===editingId?' selected':'') + (s.isDefault?' is-default':'') + '" onclick="loadScriptEditorById(\'' + s.id + '\')">' +
+      '<div class="scard-name">' + esc(s.name) + '</div>' +
+      '<div class="scard-meta">' + (s.steps||[]).length + ' steps · ' + (s.isDefault?'<span style="color:var(--amber)">Default</span>':'inactive') + '</div>' +
+      '<div class="scard-btns">' +
+        '<button class="btn-scard setdef" onclick="event.stopPropagation();setDefault(\'' + s.id + '\')">' + (s.isDefault?'✓ Default':'Set Default') + '</button>' +
+        delBtn +
+      '</div>' +
+      '</div>';
+  }).join('');
+  html += '<div class="scard scard-new" onclick="newScript()"><div class="scard-new-icon">＋</div><div style="font-size:12px;font-weight:600">New Script</div></div>';
+  document.getElementById('script-lib').innerHTML = html;
+}
+
+function renderScriptSelect() {
+  document.getElementById('scriptSelect').innerHTML = scripts.map(function(s) {
+    return '<option value="' + s.id + '">' + esc(s.name) + (s.isDefault?' ★':'') + '</option>';
+  }).join('');
+  var def = scripts.find(function(x){ return x.isDefault; });
+  if (def) document.getElementById('scriptSelect').value = def.id;
+}
+
+function loadScriptEditorById(id) {
+  var s = scripts.find(function(x){ return x.id === id; });
+  if (s) loadScriptEditor(s);
+}
+
+function loadScriptEditor(s) {
+  editingId = s.id;
+  document.getElementById('sname').value = s.name || '';
+  document.getElementById('s-gmsg').value = (s.greeting && s.greeting.message) || '';
+  document.getElementById('s-gtimeout').value = (s.greeting && s.greeting.timeout) || 10;
+  document.getElementById('s-gnoinput').value = (s.greeting && s.greeting.noInputMessage) || '';
+  document.getElementById('s-success').value = s.successMessage || '';
+  document.getElementById('s-cancel').value = s.cancelMessage || '';
+  document.getElementById('s-error').value = s.errorMessage || '';
+  editingSteps = s.steps ? JSON.parse(JSON.stringify(s.steps)) : [];
+  renderSteps();
+  renderScriptLib();
+}
+
+function newScript() {
+  editingId = null;
+  document.getElementById('sname').value = 'New Script';
+  document.getElementById('s-gmsg').value = 'Hello! Press 1 to continue, or press 2 to end this call.';
+  document.getElementById('s-gtimeout').value = 10;
+  document.getElementById('s-gnoinput').value = 'We did not receive your input. Goodbye.';
+  document.getElementById('s-success').value = 'Thank you. Your information has been received. Goodbye.';
+  document.getElementById('s-cancel').value = 'No problem. Your request has been cancelled. Goodbye.';
+  document.getElementById('s-error').value = 'We did not receive your input. Please call us back. Goodbye.';
+  editingSteps = [{label:'Step 1', message:'', maxDigits:5, timeout:15, confirmMessage:'Thank you. '}];
+  renderSteps();
+}
+
+function buildScriptPayload() {
+  var cards = document.querySelectorAll('.step-card');
+  var steps = Array.from(cards).map(function(c, i) {
+    return {
+      label: c.querySelector('.step-name').value || ('Step ' + (i+1)),
+      message: c.querySelector('.step-msg').value,
+      maxDigits: parseInt(c.querySelector('.step-digits').value) || 5,
+      timeout: parseInt(c.querySelector('.step-timeout').value) || 15,
+      confirmMessage: c.querySelector('.step-confirm').value
+    };
+  });
+  return {
+    name: document.getElementById('sname').value || 'Unnamed',
+    greeting: {
+      message: document.getElementById('s-gmsg').value,
+      timeout: parseInt(document.getElementById('s-gtimeout').value) || 10,
+      noInputMessage: document.getElementById('s-gnoinput').value
+    },
+    steps: steps,
+    successMessage: document.getElementById('s-success').value,
+    cancelMessage:  document.getElementById('s-cancel').value,
+    errorMessage:   document.getElementById('s-error').value
+  };
+}
+
+function saveScript() {
+  var data = buildScriptPayload();
+  data.id = editingId;
+  fetch('/api/scripts', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.json(); }).then(function(res) {
+    scripts = res.scripts;
+    renderScriptLib();
+    renderScriptSelect();
+    showSaved('script-saved');
+  });
+}
+
+function saveAsNew() {
+  var data = buildScriptPayload();
+  data.id = null;
+  fetch('/api/scripts', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.json(); }).then(function(res) {
+    scripts = res.scripts;
+    var newest = scripts[scripts.length-1];
+    editingId = newest.id;
+    renderScriptLib();
+    renderScriptSelect();
+    showSaved('script-saved');
+  });
+}
+
+function setDefault(id) {
+  fetch('/api/scripts/' + id + '/setdefault', {method:'POST'})
+    .then(function(){ return fetch('/api/scripts'); })
+    .then(function(r){ return r.json(); })
+    .then(function(s){ scripts=s; renderScriptLib(); renderScriptSelect(); });
+}
+
+function deleteScript(id) {
+  if (!confirm('Delete this script?')) return;
+  fetch('/api/scripts/' + id, {method:'DELETE'})
+    .then(function(r){ return r.json(); })
+    .then(function(res) {
+      scripts = res.scripts;
+      if (editingId === id) loadScriptEditor(scripts.find(function(x){return x.isDefault;})||scripts[0]);
+      renderScriptLib();
+      renderScriptSelect();
+    });
+}
+
+function renderSteps() {
+  document.getElementById('steps-list').innerHTML = editingSteps.map(function(s, i) {
+    return '<div class="step-card">' +
+      '<div class="step-hd">' +
+        '<div class="step-num">' + (i+1) + '</div>' +
+        '<input class="step-name" value="' + esc(s.label) + '" placeholder="Step name"/>' +
+        '<button class="btn-rm" onclick="removeStep(' + i + ')">×</button>' +
+      '</div>' +
+      '<div class="sg">' +
+        '<div class="sf full"><label>What the bot says</label><textarea class="step-msg" rows="2" placeholder="Please enter...">' + esc(s.message) + '</textarea></div>' +
+        '<div class="sf"><label>Max digits</label><input type="number" class="step-digits" value="' + (s.maxDigits||5) + '" min="1" max="20"/></div>' +
+        '<div class="sf"><label>Timeout (s)</label><input type="number" class="step-timeout" value="' + (s.timeout||15) + '" min="5" max="60"/></div>' +
+        '<div class="sf full"><label>Confirmation after input</label><input type="text" class="step-confirm" value="' + esc(s.confirmMessage||'') + '"/></div>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function addStep() {
+  editingSteps.push({label:'Step '+(editingSteps.length+1), message:'', maxDigits:5, timeout:15, confirmMessage:'Thank you. '});
+  renderSteps();
+}
+
+function removeStep(i) {
+  if (editingSteps.length <= 1) { alert('You need at least one step.'); return; }
+  editingSteps.splice(i, 1);
+  renderSteps();
+}
+
+// ─── Call ─────────────────────────────────────────────────────────────────────
+function initiateCall() {
+  var phone = document.getElementById('phoneInput').value.trim();
+  var label = document.getElementById('labelInput').value.trim();
+  var scriptId = document.getElementById('scriptSelect').value;
+  if (!phone) { showMsg('Please enter a phone number.', 'err'); return; }
+  var btn = document.getElementById('callBtn');
+  btn.disabled = true;
+  document.getElementById('callBtnText').textContent = 'CALLING...';
+  document.getElementById('callBtnIcon').textContent = '⏳';
+  hideMsg();
+  fetch('/api/call', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({phoneNumber:phone, label:label||'Call', scriptId:scriptId})
+  }).then(function(r){ return r.json(); }).then(function(d) {
+    if (d.success) {
+      showMsg('✅ Call started! Check the Monitor tab.', 'ok');
+      document.getElementById('phoneInput').value = '';
+      document.getElementById('labelInput').value = '';
+    } else {
+      showMsg('❌ Error: ' + (d.error || 'Unknown error'), 'err');
+    }
+    btn.disabled = false;
+    document.getElementById('callBtnText').textContent = 'CALL NOW';
+    document.getElementById('callBtnIcon').textContent = '📲';
+  }).catch(function() {
+    showMsg('❌ Cannot connect to server.', 'err');
+    btn.disabled = false;
+    document.getElementById('callBtnText').textContent = 'CALL NOW';
+    document.getElementById('callBtnIcon').textContent = '📲';
+  });
+}
+
+function endCall(sid) {
+  fetch('/api/call/' + sid + '/end', {method:'POST'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if (!d.success) alert('Could not end call: ' + d.error); });
+}
+
+function testConn() {
+  showMsg('⏳ Testing connection...', 'info');
+  fetch('/api/test').then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ok) showMsg('✅ Connected to ' + d.provider + ': ' + d.name, 'ok');
+    else showMsg('❌ ' + d.error, 'err');
+  }).catch(function(){ showMsg('❌ Cannot reach server.', 'err'); });
+}
+
+function showMsg(txt, type) {
+  var el = document.getElementById('callMsg');
+  el.textContent = txt; el.className = 'msg-box ' + type; el.style.display = 'block';
+}
+function hideMsg() {
+  var el = document.getElementById('callMsg');
+  el.style.display = 'none'; el.className = 'msg-box';
+}
+
+document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') initiateCall();
+});
+
+// ─── Monitor ──────────────────────────────────────────────────────────────────
+function pollSessions() {
+  fetch('/api/sessions').then(function(r){ return r.json(); }).then(function(s) {
+    sessions = s;
+    renderMonitor();
+    document.getElementById('st-active').textContent = s.filter(function(x){ return ['in-progress','initiated','ringing'].includes(x.status); }).length;
+    document.getElementById('st-total').textContent = s.length;
+    document.getElementById('st-done').textContent = s.filter(function(x){ return x.status==='completed'; }).length;
+  }).catch(function(){});
+}
+
+function renderMonitor() {
+  var grid = document.getElementById('mon-grid');
+  var empty = document.getElementById('empty-mon');
+  if (!sessions.length) { empty.style.display='flex'; return; }
+  empty.style.display = 'none';
+  sessions.forEach(function(s) {
+    var cardId = 'mc-' + s.callSid;
+    var card = document.getElementById(cardId);
+    if (!card) {
+      card = document.createElement('div');
+      card.id = cardId;
+      grid.insertBefore(card, grid.firstChild);
+    }
+    var isActive = ['in-progress','initiated','ringing'].includes(s.status);
+    var badge = '<span class="badge badge-' + s.status + '"><span class="bdot' + (isActive?' bdot-pulse':'') + '"></span>' + s.status.replace(/-/g,' ').toUpperCase() + '</span>';
+    var prog = '';
+    if (s.steps > 0) {
+      prog = '<div class="prog-track">';
+      for (var i=0;i<s.steps;i++) {
+        var cl = i<s.collected.length ? 'done' : (i===s.collected.length&&isActive ? 'active' : '');
+        prog += '<div class="pseg ' + cl + '"></div>';
+      }
+      prog += '</div>';
+    }
+    var coll = '';
+    if (s.collected.length) {
+      coll = '<div class="coll-list">';
+      s.collected.forEach(function(c) {
+        coll += '<div class="coll-item"><span class="ci-lbl">' + c.label + '</span><span class="ci-val">' + c.value + '</span><span class="ci-t">' + new Date(c.time).toLocaleTimeString() + '</span></div>';
+      });
+      coll += '</div>';
+    }
+    var dur = s.duration ? (Math.floor(s.duration/60) + 'm ' + (s.duration%60) + 's') : (isActive ? '<span style="color:var(--cyan2)">● Live</span>' : '—');
+    var endBtn = isActive ? '<button class="btn-sm end-call" onclick="endCall(\'' + s.callSid + '\')">⏹ End Call</button>' : '';
+    var copyBtn = s.collected.length ? '<button class="btn-sm" onclick="copyData(\'' + s.callSid + '\')">📋 Copy</button>' : '';
+    var statusLine = s.statusDetail ? '<div class="status-line"><span class="sdot' + (isActive?' active':'') + '"></span>' + s.statusDetail + '</div>' : '';
+
+    card.className = 'ccard s-' + s.status.replace(/[^a-z-]/g,'');
+    card.innerHTML = '<div class="ccard-head">' +
+      '<div><div class="cphone">' + s.phone + '</div><div class="clabel">' + s.label + ' · ' + (s.scriptName||'') + ' · ' + (s.provider||'').toUpperCase() + '</div></div>' +
+      '<div class="ccard-right"><div class="ctime">' + new Date(s.startTime).toLocaleTimeString() + '</div>' + badge + '</div>' +
+      '</div>' +
+      '<div class="ccard-body">' + prog + coll + statusLine + '</div>' +
+      '<div class="ccard-foot"><div class="cdetail-txt">' + dur + '</div><div class="cactions">' + endBtn + copyBtn + '</div></div>';
+  });
+}
+
+function copyData(sid) {
+  var s = sessions.find(function(x){ return x.callSid===sid; });
+  if (!s) return;
+  var lines = ['Phone: ' + s.phone, 'Label: ' + s.label, 'Time: ' + new Date(s.startTime).toLocaleString(), ''];
+  s.collected.forEach(function(c){ lines.push(c.label + ': ' + c.value); });
+  navigator.clipboard.writeText(lines.join('\n'));
+}
+
+// ─── Logs ─────────────────────────────────────────────────────────────────────
+function loadLogs() {
+  fetch('/api/logs').then(function(r){ return r.json(); }).then(function(l) {
+    logs = l;
+    renderLogs();
+  });
+}
+
+function renderLogs() {
+  var c = document.getElementById('logs-container');
+  if (!logs.length) { c.innerHTML = '<div class="no-logs">📭 No call logs yet. Logs appear here after every call.</div>'; return; }
+  var rows = logs.map(function(l) {
+    var dur = l.duration ? (Math.floor(l.duration/60) + 'm ' + (l.duration%60) + 's') : '—';
+    var t = new Date(l.startTime).toLocaleString();
+    var hasData = l.collected && l.collected.length > 0;
+    var expandBtn = hasData ? '<button class="log-expand-btn" onclick="toggleDetail(\'' + l.id + '\')">View ▾</button>' : '—';
+    var detailRow = '';
+    if (hasData) {
+      var chips = l.collected.map(function(c) {
+        return '<div class="detail-chip"><div class="dc-label">' + c.label + '</div><div class="dc-val">' + c.value + '</div></div>';
+      }).join('');
+      detailRow = '<tr class="log-detail-row" id="ldr-' + l.id + '"><td colspan="9" class="log-detail-cell"><div class="detail-chips">' + chips + '</div></td></tr>';
+    }
+    var provColor = {twilio:'var(--cyan2)',signalwire:'var(--purple)',vonage:'#e040fb',plivo:'var(--green2)',africastalking:'var(--amber)',telnyx:'#7c4dff'};
+    return '<tr>' +
+      '<td style="font-family:var(--mono);font-weight:700">' + l.phone + '</td>' +
+      '<td>' + l.label + '</td>' +
+      '<td style="color:var(--text2);font-size:11px">' + (l.scriptName||'—') + '</td>' +
+      '<td><span style="font-size:10px;font-weight:700;color:' + (provColor[l.provider]||'var(--text2)') + '">' + (l.provider||'—').toUpperCase() + '</span></td>' +
+      '<td><span class="badge badge-' + l.status + '" style="font-size:9px">' + l.status.replace(/-/g,' ').toUpperCase() + '</span></td>' +
+      '<td class="dur-badge">' + dur + '</td>' +
+      '<td style="color:var(--text2);font-size:11px">' + t + '</td>' +
+      '<td>' + expandBtn + '</td>' +
+      '<td><button class="btn-sm" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="deleteLog(\'' + l.id + '\')">🗑</button></td>' +
+      '</tr>' + detailRow;
+  }).join('');
+  c.innerHTML = '<div class="log-wrap"><table class="log-table"><thead><tr><th>Phone</th><th>Label</th><th>Script</th><th>Provider</th><th>Status</th><th>Duration</th><th>Time</th><th>Data</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+function toggleDetail(id) {
+  var el = document.getElementById('ldr-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+function deleteLog(id) {
+  fetch('/api/logs/' + id, {method:'DELETE'}).then(function() {
+    logs = logs.filter(function(l){ return l.id !== id; });
+    renderLogs();
+  });
+}
+
+function clearAllLogs() {
+  if (!confirm('Clear all call logs? This cannot be undone.')) return;
+  fetch('/api/logs', {method:'DELETE'}).then(function() { logs=[]; renderLogs(); });
+}
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showSaved(id) {
+  var el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+loadSettingsUI();
+loadScriptsUI();
+pollSessions();
+setInterval(pollSessions, 2000);
+</script>
+</body>
+</html>
