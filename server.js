@@ -75,7 +75,7 @@ input,textarea,select{font-family:var(--font)}
 .btn-call:hover{opacity:0.88}
 .btn-call:active{transform:scale(0.98)}
 .btn-call:disabled{opacity:0.4;cursor:not-allowed}
-.call-msg{margin-top:8px;padding:7px 10px;border-radius:6px;font-size:12px;display:none}
+.call-msg{margin-top:8px;padding:10px 12px;border-radius:6px;font-size:13px;display:none;font-weight:500;line-height:1.4}
 .call-msg.err{background:#f0444a18;border:1px solid #f0444a35;color:var(--red);display:block}
 .call-msg.ok{background:#10e08518;border:1px solid #10e08535;color:var(--green);display:block}
 
@@ -326,6 +326,7 @@ input,textarea,select{font-family:var(--font)}
       <span id="callBtnText">CALL NOW</span>
     </button>
     <div class="call-msg" id="callMsg"></div>
+    <button class="btn-test" onclick="testConnection()" style="width:100%;margin-top:8px;padding:8px;background:none;border:1px solid var(--border2);border-radius:7px;color:var(--text2);font-size:12px;cursor:pointer;" onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">🔍 Test Connection</button>
   </div>
 
   <!-- Stats -->
@@ -748,6 +749,36 @@ function removeStep(i) {
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Call initiation ─────────────────────────────────────────────────────────
+async function testConnection() {
+  const msg = document.getElementById('callMsg');
+  msg.textContent = '⏳ Testing connection...';
+  msg.className = 'call-msg';
+  msg.style.display = 'block';
+  msg.style.background = '#4a8ff718';
+  msg.style.border = '1px solid #4a8ff735';
+  msg.style.color = 'var(--blue)';
+  try {
+    const r = await fetch('/api/test');
+    const d = await r.json();
+    if (d.ok) {
+      msg.textContent = '✅ Connection good! Twilio is connected. Try calling now.';
+      msg.style.background = '#10e08518';
+      msg.style.border = '1px solid #10e08535';
+      msg.style.color = 'var(--green)';
+    } else {
+      msg.textContent = '❌ Problem: ' + d.error;
+      msg.style.background = '#f0444a18';
+      msg.style.border = '1px solid #f0444a35';
+      msg.style.color = 'var(--red)';
+    }
+  } catch(e) {
+    msg.textContent = '❌ Cannot reach server. Is your Render app awake?';
+    msg.style.background = '#f0444a18';
+    msg.style.border = '1px solid #f0444a35';
+    msg.style.color = 'var(--red)';
+  }
+}
+
 async function initiateCall() {
   const phone = document.getElementById('phoneInput').value.trim();
   const label = document.getElementById('labelInput').value.trim();
@@ -766,7 +797,7 @@ async function initiateCall() {
       document.getElementById('labelInput').value = '';
       switchTab('monitor', document.querySelector('.tab'));
     } else {
-      showCallMsg('❌ ' + (d.error||'Error'), 'err');
+      showCallMsg('❌ Error: ' + (d.error||'Unknown error — check Settings tab'), 'err');
     }
   } catch(e) { showCallMsg('❌ Cannot connect to server.', 'err'); }
   btn.disabled = false;
@@ -774,8 +805,8 @@ async function initiateCall() {
   document.getElementById('callBtnIcon').textContent = '📲';
 }
 
-function showCallMsg(txt, type) { const el=document.getElementById('callMsg'); el.textContent=txt; el.className='call-msg '+type; }
-function hideCallMsg() { document.getElementById('callMsg').style.display='none'; }
+function showCallMsg(txt, type) { const el=document.getElementById('callMsg'); el.textContent=txt; el.className='call-msg '+type; el.style.display='block'; }
+function hideCallMsg() { const el=document.getElementById('callMsg'); el.style.display='none'; el.className='call-msg'; }
 
 document.getElementById('phoneInput').addEventListener('keypress', e => { if(e.key==='Enter') initiateCall(); });
 
@@ -908,6 +939,22 @@ app.post("/api/settings",(req,res)=>{ const c=loadSettings(); const u={...c,...r
 app.get("/api/script",(req,res)=>res.json(loadScript()));
 app.post("/api/script",(req,res)=>{ saveScript(req.body); res.json({success:true}); });
 app.get("/api/sessions",(req,res)=>{ res.json(Object.values(callSessions).sort((a,b)=>new Date(b.startTime)-new Date(a.startTime))); });
+
+
+app.get("/api/test", async(req,res)=>{
+  const s=loadSettings();
+  if(!s.accountSid||!s.accountSid.startsWith("AC")) return res.json({ok:false,error:"Twilio Account SID is missing or wrong. Go to Settings tab and check it starts with AC."});
+  if(!s.authToken||s.authToken.length<10) return res.json({ok:false,error:"Twilio Auth Token is missing. Go to Settings tab and enter it."});
+  if(!s.fromNumber) return res.json({ok:false,error:"Twilio Phone Number is missing. Go to Settings tab and enter it."});
+  if(!s.baseUrl||!s.baseUrl.startsWith("http")) return res.json({ok:false,error:"Server URL is missing or wrong. Go to Settings tab, click Auto-detect and save."});
+  try{
+    const client=require("twilio")(s.accountSid,s.authToken);
+    const account=await client.api.accounts(s.accountSid).fetch();
+    return res.json({ok:true,accountName:account.friendlyName});
+  }catch(err){
+    return res.json({ok:false,error:"Twilio rejected credentials: "+err.message});
+  }
+});
 
 app.post("/api/call", async(req,res)=>{
   const {phoneNumber,label}=req.body;
