@@ -30,20 +30,21 @@
   --head:'Rajdhani',sans-serif;
   --body:'Inter',sans-serif;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;font-size:15px}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;font-size:14px}
 button{cursor:pointer;font-family:var(--body)}
 input,select,textarea{font-family:var(--body)}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#c0c8d8;border-radius:10px}
 
 /* ── LAYOUT ── */
-.shell{display:flex;height:100vh;overflow:hidden}
+.shell{display:flex;height:100vh;overflow:hidden;min-width:0}
 
 /* ── SIDEBAR ── */
 .sidebar{
-  width:340px;min-width:340px;
+  width:300px;min-width:260px;max-width:300px;
   background:linear-gradient(180deg,#1a2332 0%,#1e2a3a 40%,#162030 100%);
   display:flex;flex-direction:column;
-  overflow:hidden;position:relative;
+  overflow-y:auto;overflow-x:hidden;position:relative;
+  flex-shrink:0;
 }
 
 /* Circuit board decoration */
@@ -194,7 +195,7 @@ input,select,textarea{font-family:var(--body)}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.7)}}
 
 /* ── MAIN ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0}
 
 /* Tabs */
 .tabbar{
@@ -213,7 +214,7 @@ input,select,textarea{font-family:var(--body)}
 .tab.active{color:#00a8cc;border-bottom-color:#00d4ff}
 
 /* Panels */
-.panel{flex:1;overflow-y:auto;display:none;padding:20px}
+.panel{flex:1;overflow-y:auto;display:none;padding:20px 24px}
 .panel.active{display:block}
 
 /* Panel header */
@@ -521,6 +522,17 @@ input,select,textarea{font-family:var(--body)}
 .tag-free{background:rgba(0,230,118,0.1);color:var(--green2)}
 .tag-natural{background:rgba(0,212,255,0.1);color:var(--cyan2)}
 .tag-premium{background:rgba(179,136,255,0.1);color:var(--purple)}
+
+/* Settings sub-tabs */
+.cfg-tab{
+  padding:8px 16px;border:1px solid var(--border);border-radius:8px;
+  background:var(--panel);color:var(--text2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;
+}
+.cfg-tab:hover{border-color:var(--cyan2);color:var(--cyan2)}
+.cfg-tab.active{background:var(--cyan2);border-color:var(--cyan2);color:#fff}
+.cfg-pane{display:none}
+.cfg-pane.active{display:block}
 </style>
 </head>
 <body>
@@ -716,111 +728,142 @@ input,select,textarea{font-family:var(--body)}
 
   <!-- SETTINGS -->
   <div id="panel-settings" class="panel">
-    <div class="ph"><div><div class="ph-title">Settings</div><div class="ph-sub">Configure providers, voice and credentials</div></div></div>
+    <div class="ph"><div><div class="ph-title">Settings</div><div class="ph-sub">Configure your provider credentials, voice and general options</div></div></div>
 
-    <!-- Nigeria note -->
-    <div class="nigeria-note">
-      <strong>📌 Nigeria-friendly providers:</strong> If Twilio verification is too difficult,
-      <strong>Africa's Talking</strong> is an African company — very easy signup for Nigerians, works excellently in Nigeria.
-      <strong>Plivo</strong> and <strong>Telnyx</strong> also have lighter verification requirements.
-      All providers below are configured the same way — enter credentials and switch using the buttons on the left sidebar.
+    <div class="nigeria-note" style="margin-bottom:18px">
+      <strong>📌 Nigeria-friendly:</strong> Africa's Talking is easiest for Nigerians — African company, simple signup.
+      Plivo and Telnyx also have lighter verification than Twilio.
+      Enter credentials below for each provider, then switch between them using the sidebar buttons.
+    </div>
+
+    <!-- Settings tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="cfg-tab active" id="ctab-general" onclick="switchCfgTab('general',this)">⚙️ General</button>
+      <button class="cfg-tab" id="ctab-twilio" onclick="switchCfgTab('twilio',this)">📞 Twilio</button>
+      <button class="cfg-tab" id="ctab-signalwire" onclick="switchCfgTab('signalwire',this)">⚡ SignalWire</button>
+      <button class="cfg-tab" id="ctab-vonage" onclick="switchCfgTab('vonage',this)">💜 Vonage</button>
+      <button class="cfg-tab" id="ctab-plivo" onclick="switchCfgTab('plivo',this)">🟢 Plivo</button>
+      <button class="cfg-tab" id="ctab-at" onclick="switchCfgTab('at',this)">🌍 Africa's</button>
+      <button class="cfg-tab" id="ctab-telnyx" onclick="switchCfgTab('telnyx',this)">🔷 Telnyx</button>
+      <button class="cfg-tab" id="ctab-voice" onclick="switchCfgTab('voice',this)">🎙️ Voice</button>
     </div>
 
     <!-- General -->
-    <div class="cfg-sec">
-      <div class="cfg-title">General</div>
-      <div class="cfg-grid">
-        <div class="cf cfg-full"><label>Company Name</label><input type="text" id="cfg-company" placeholder="My Company"/></div>
-        <div class="cf"><label>Language</label>
-          <select id="cfg-lang">
-            <option value="en-US">English (US)</option>
-            <option value="en-GB">English (UK)</option>
-            <option value="en-AU">English (Australia)</option>
-            <option value="fr-FR">French</option>
-            <option value="de-DE">German</option>
-            <option value="es-ES">Spanish (Spain)</option>
-            <option value="es-MX">Spanish (Mexico)</option>
-            <option value="pt-BR">Portuguese (Brazil)</option>
-          </select>
+    <div class="cfg-pane active" id="cpane-general">
+      <div class="cfg-sec">
+        <div class="cfg-title">General Settings</div>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:500px">
+          <div class="cf"><label>Company Name</label><input type="text" id="cfg-company" placeholder="My Company"/></div>
+          <div class="cf"><label>Language for Voice Calls</label>
+            <select id="cfg-lang">
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="en-AU">English (Australia)</option>
+              <option value="fr-FR">French</option>
+              <option value="de-DE">German</option>
+              <option value="es-ES">Spanish (Spain)</option>
+              <option value="es-MX">Spanish (Mexico)</option>
+              <option value="pt-BR">Portuguese (Brazil)</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Twilio -->
-    <div class="cfg-sec">
-      <div class="cfg-title">
-        <span class="provider-badge badge-twilio">📞 Twilio</span>
-      </div>
-      <div class="cfg-grid">
-        <div class="cf"><label>Account SID</label><input type="text" id="tw-sid" placeholder="ACxxxxxxxxxxxxxxxx"/><span class="note">From <a href="https://console.twilio.com" target="_blank">console.twilio.com</a> → Dashboard</span></div>
-        <div class="cf"><label>Auth Token</label><input type="password" id="tw-token" placeholder="Your auth token"/></div>
-        <div class="cf"><label>Phone Number (From)</label><input type="tel" id="tw-from" placeholder="+15551234567"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="tw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('tw-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-twilio">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-twilio">📞 Twilio</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Get credentials from <a href="https://console.twilio.com" target="_blank">console.twilio.com</a> → Dashboard</p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>Account SID</label><input type="text" id="tw-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
+          <div class="cf"><label>Auth Token</label><input type="password" id="tw-token" placeholder="Your auth token (hidden)"/></div>
+          <div class="cf"><label>Phone Number (From)</label><input type="tel" id="tw-from" placeholder="+15551234567"/></div>
+          <div class="cf"><label>Your Server Public URL</label><div class="url-row"><input type="text" id="tw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('tw-url')">Auto-detect</button></div><span class="note">Click Auto-detect to fill your Render URL automatically.</span></div>
+        </div>
       </div>
     </div>
 
     <!-- SignalWire -->
-    <div class="cfg-sec">
-      <div class="cfg-title"><span class="provider-badge badge-sw">⚡ SignalWire</span></div>
-      <div class="cfg-grid">
-        <div class="cf"><label>Project ID</label><input type="text" id="sw-pid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx"/></div>
-        <div class="cf"><label>Auth Token</label><input type="password" id="sw-token" placeholder="Your auth token"/></div>
-        <div class="cf"><label>Phone Number</label><input type="tel" id="sw-from" placeholder="+15551234567"/></div>
-        <div class="cf"><label>Space URL</label><input type="text" id="sw-space" placeholder="yourspace.signalwire.com"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="sw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('sw-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-signalwire">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-sw">⚡ SignalWire</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Twilio-compatible, often 3-5× cheaper. Sign up at <a href="https://signalwire.com" target="_blank">signalwire.com</a></p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>Project ID</label><input type="text" id="sw-pid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/></div>
+          <div class="cf"><label>Auth Token</label><input type="password" id="sw-token" placeholder="Your auth token"/></div>
+          <div class="cf"><label>Space URL</label><input type="text" id="sw-space" placeholder="yourspace.signalwire.com"/></div>
+          <div class="cf"><label>Phone Number</label><input type="tel" id="sw-from" placeholder="+15551234567"/></div>
+          <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="sw-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('sw-url')">Auto-detect</button></div></div>
+        </div>
       </div>
     </div>
 
     <!-- Vonage -->
-    <div class="cfg-sec">
-      <div class="cfg-title"><span class="provider-badge badge-vonage">💜 Vonage</span></div>
-      <div class="cfg-grid">
-        <div class="cf"><label>API Key</label><input type="text" id="vo-key" placeholder="Your API key"/><span class="note">From <a href="https://dashboard.nexmo.com" target="_blank">dashboard.nexmo.com</a></span></div>
-        <div class="cf"><label>API Secret</label><input type="password" id="vo-secret" placeholder="Your API secret"/></div>
-        <div class="cf"><label>Phone Number</label><input type="tel" id="vo-from" placeholder="+15551234567"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="vo-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('vo-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-vonage">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-vonage">💜 Vonage</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Get credentials from <a href="https://dashboard.nexmo.com" target="_blank">dashboard.nexmo.com</a></p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>API Key</label><input type="text" id="vo-key" placeholder="Your API key"/></div>
+          <div class="cf"><label>API Secret</label><input type="password" id="vo-secret" placeholder="Your API secret"/></div>
+          <div class="cf"><label>Phone Number</label><input type="tel" id="vo-from" placeholder="+15551234567"/></div>
+          <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="vo-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('vo-url')">Auto-detect</button></div></div>
+        </div>
       </div>
     </div>
 
     <!-- Plivo -->
-    <div class="cfg-sec">
-      <div class="cfg-title"><span class="provider-badge badge-plivo">🟢 Plivo</span></div>
-      <div class="cfg-grid">
-        <div class="cf"><label>Auth ID</label><input type="text" id="pl-authid" placeholder="Your Auth ID"/><span class="note">From <a href="https://console.plivo.com" target="_blank">console.plivo.com</a> → Overview</span></div>
-        <div class="cf"><label>Auth Token</label><input type="password" id="pl-token" placeholder="Your auth token"/></div>
-        <div class="cf"><label>Phone Number</label><input type="tel" id="pl-from" placeholder="+15551234567"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="pl-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('pl-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-plivo">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-plivo">🟢 Plivo</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Get credentials from <a href="https://console.plivo.com" target="_blank">console.plivo.com</a> → Overview</p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>Auth ID</label><input type="text" id="pl-authid" placeholder="Your Auth ID"/></div>
+          <div class="cf"><label>Auth Token</label><input type="password" id="pl-token" placeholder="Your auth token"/></div>
+          <div class="cf"><label>Phone Number</label><input type="tel" id="pl-from" placeholder="+15551234567"/></div>
+          <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="pl-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('pl-url')">Auto-detect</button></div></div>
+        </div>
       </div>
     </div>
 
     <!-- Africa's Talking -->
-    <div class="cfg-sec">
-      <div class="cfg-title"><span class="provider-badge badge-at">🌍 Africa's Talking</span></div>
-      <div class="cfg-grid">
-        <div class="cf"><label>Username</label><input type="text" id="at-user" placeholder="Your username"/><span class="note">Sign up at <a href="https://africastalking.com" target="_blank">africastalking.com</a> — easy for Nigerians</span></div>
-        <div class="cf"><label>API Key</label><input type="password" id="at-key" placeholder="Your API key"/></div>
-        <div class="cf"><label>Phone Number (Caller ID)</label><input type="tel" id="at-from" placeholder="+234 or shortcode"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="at-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('at-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-at">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-at">🌍 Africa's Talking</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Best for Nigerians. Sign up at <a href="https://africastalking.com" target="_blank">africastalking.com</a> — simple process, works great in Nigeria.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>Username</label><input type="text" id="at-user" placeholder="Your AT username"/></div>
+          <div class="cf"><label>API Key</label><input type="password" id="at-key" placeholder="Your API key"/></div>
+          <div class="cf"><label>Phone Number / Caller ID</label><input type="tel" id="at-from" placeholder="+234... or your shortcode"/></div>
+          <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="at-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('at-url')">Auto-detect</button></div></div>
+        </div>
       </div>
     </div>
 
     <!-- Telnyx -->
-    <div class="cfg-sec">
-      <div class="cfg-title"><span class="provider-badge badge-te">🔷 Telnyx</span></div>
-      <div class="cfg-grid">
-        <div class="cf"><label>API Key</label><input type="password" id="te-key" placeholder="KEY..."/><span class="note">From <a href="https://portal.telnyx.com" target="_blank">portal.telnyx.com</a> → API Keys</span></div>
-        <div class="cf"><label>Phone Number</label><input type="tel" id="te-from" placeholder="+15551234567"/></div>
-        <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="te-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('te-url')">Auto</button></div></div>
+    <div class="cfg-pane" id="cpane-telnyx">
+      <div class="cfg-sec">
+        <div class="cfg-title"><span class="provider-badge badge-te">🔷 Telnyx</span></div>
+        <p class="note" style="margin-bottom:14px;font-size:12px">Get API key from <a href="https://portal.telnyx.com" target="_blank">portal.telnyx.com</a> → API Keys</p>
+        <div style="display:flex;flex-direction:column;gap:14px;max-width:540px">
+          <div class="cf"><label>API Key</label><input type="password" id="te-key" placeholder="KEY..."/></div>
+          <div class="cf"><label>Phone Number</label><input type="tel" id="te-from" placeholder="+15551234567"/></div>
+          <div class="cf"><label>Server URL</label><div class="url-row"><input type="text" id="te-url" placeholder="https://your-app.onrender.com"/><button class="btn-auto" onclick="autoDetect('te-url')">Auto-detect</button></div></div>
+        </div>
       </div>
     </div>
 
     <!-- Voice -->
-    <div class="cfg-sec">
-      <div class="cfg-title">Voice</div>
-      <div class="voice-grid" id="voice-grid"></div>
+    <div class="cfg-pane" id="cpane-voice">
+      <div class="cfg-sec">
+        <div class="cfg-title">Voice Selection</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6">Standard voices (Alice, Man, Woman) are free. Amazon Polly voices sound more natural and cost slightly more (~$0.004 per 100 characters). Neural voices are the highest quality.</p>
+        <div class="voice-grid" id="voice-grid"></div>
+      </div>
     </div>
 
-    <div class="save-row">
+    <div class="save-row" style="margin-top:6px">
       <button class="btn-save" onclick="saveSettings()">💾 Save All Settings</button>
       <span class="saved-ok" id="settings-saved">✓ Saved!</span>
     </div>
@@ -1068,30 +1111,20 @@ function autoDetect(id) { document.getElementById(id).value = window.location.or
 
 // ─── Scripts ──────────────────────────────────────────────────────────────────
 function loadScriptsUI() {
-  fetch('/api/scripts').then(function(r){ return r.json(); }).then(function(s) {
-    // If server returned empty array (shouldn't happen but safety net)
+  fetch('/api/scripts', {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(s) {
     if (!s || !s.length) {
-      // Retry once after 1 second
-      setTimeout(function(){
-        fetch('/api/scripts').then(function(r2){ return r2.json(); }).then(function(s2){
-          scripts = s2 && s2.length ? s2 : [{id:'default',name:'Default Script',isDefault:true,steps:[],greeting:{message:'',timeout:10,noInputMessage:''},successMessage:'',cancelMessage:'',errorMessage:''}];
-          renderScriptLib();
-          renderScriptSelect();
-          loadScriptEditor(scripts[0]);
-        });
-      }, 1000);
+      setTimeout(loadScriptsUI, 1500);
       return;
     }
     scripts = s;
     renderScriptLib();
     renderScriptSelect();
     var def = scripts.find(function(x){ return x.isDefault; }) || scripts[0];
-    if (def) {
-      editingId = def.id;
-      loadScriptEditor(def);
-    }
+    editingId = def.id;
+    loadScriptEditor(def);
   }).catch(function(e){
     console.error('Script load error:', e);
+    setTimeout(loadScriptsUI, 2000);
   });
 }
 
@@ -1594,6 +1627,15 @@ function showSaved(id) {
   var el = document.getElementById(id);
   el.classList.add('show');
   setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+
+
+function switchCfgTab(id, btn) {
+  document.querySelectorAll('.cfg-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.cfg-pane').forEach(function(p){ p.classList.remove('active'); });
+  btn.classList.add('active');
+  var pane = document.getElementById('cpane-' + id);
+  if (pane) pane.classList.add('active');
 }
 
 // ─── Security ─────────────────────────────────────────────────────────────────
