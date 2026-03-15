@@ -380,6 +380,22 @@ app.post("/api/settings", async (req, res) => {
   });
   await saveSettings(updated); res.json({ success:true });
 });
+app.get("/api/debug", (req,res) => {
+  const s = loadSettings();
+  const scripts = loadScripts();
+  const p = s.provider || "twilio";
+  const creds = s[p] || {};
+  res.json({
+    provider: p,
+    baseUrl: creds.baseUrl || "(NOT SET)",
+    fromNumber: creds.fromNumber || "(NOT SET)",
+    hasAccountSid: !!(creds.accountSid || creds.projectId),
+    scriptCount: scripts.length,
+    defaultScript: (scripts.find(x=>x.isDefault)||scripts[0])?.name,
+    greetingMsg: (scripts.find(x=>x.isDefault)||scripts[0])?.greeting?.message?.slice(0,60) || "(EMPTY!)"
+  });
+});
+
 app.get("/api/test", async (req, res) => {
   const s=loadSettings(); const ctx=makeClient(s);
   if(!ctx) return res.json({ok:false,error:"Credentials not configured for "+s.provider+"."});
@@ -500,12 +516,15 @@ app.post("/api/ai-enhance", async (req, res) => {
 // ── TwiML ─────────────────────────────────────────────────────────────────────
 function getVoice(){const s=loadSettings();return{voice:s.voice||"alice",language:s.language||"en-US"};}
 function getBase(req){
-  const s=loadSettings();
-  const p=s.provider||"twilio";
-  const saved=(s[p]||{}).baseUrl||"";
-  if(saved) return saved;
-  if(req) return getPublicUrl(req);
-  return detectedBaseUrl||"";
+  // Always try to detect from incoming request first (most reliable)
+  if(req){
+    const proto = req.headers["x-forwarded-proto"] || "https";
+    const host  = req.headers["x-forwarded-host"] || req.headers["host"] || "";
+    if(host) return proto + "://" + host;
+  }
+  // Fall back to saved setting
+  const s=loadSettings(); const p=s.provider||"twilio";
+  return (s[p]||{}).baseUrl || detectedBaseUrl || "";
 }
 function getScript(id){const ss=loadScripts();return ss.find(s=>s.id===id)||ss[0];}
 
@@ -513,8 +532,11 @@ app.post("/twiml/start",(req,res)=>{
   const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const sid=req.body.CallSid;
   if(callSessions[sid]){callSessions[sid].status="ringing";callSessions[sid].statusDetail="Playing greeting...";syncLog(callSessions[sid]);}
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
-  const g=t.gather({numDigits:1,action:base+"/twiml/greet?sid="+sc.id,method:"POST",timeout:sc.greeting.timeout});
-  g.say({voice:v,language:l},sc.greeting.message);t.say({voice:v,language:l},sc.greeting.noInputMessage);t.hangup();
+  const greetMsg = (sc.greeting && sc.greeting.message) || "Hello! Press 1 to continue, or press 2 to end this call.";
+  const noInputMsg = (sc.greeting && sc.greeting.noInputMessage) || "We did not receive your input. Goodbye.";
+  const timeout = (sc.greeting && sc.greeting.timeout) || 10;
+  const g=t.gather({numDigits:1,action:base+"/twiml/greet?sid="+sc.id,method:"POST",timeout:timeout});
+  g.say({voice:v,language:l},greetMsg);t.say({voice:v,language:l},noInputMsg);t.hangup();
   res.type("text/xml").send(t.toString());
 });
 app.post("/twiml/greet",(req,res)=>{
