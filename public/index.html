@@ -79,85 +79,121 @@ input,select,textarea{font-family:var(--body)}
 .logo-sub{font-size:10px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
 .version-badge{display:inline-block;padding:1px 7px;background:#00d4ff18;border:1px solid #00d4ff30;border-radius:10px;font-size:9px;color:var(--cyan);letter-spacing:1px;margin-top:4px}
 
-/* Provider switcher */
-.prov-switcher{
-  margin:12px 14px 6px;
-  position:relative;z-index:1;
-}
-.prov-label{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
-.prov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+/* ── PROVIDER SWITCHER — fancy cards ── */
+.prov-switcher{margin:10px 12px 0;position:relative;z-index:1}
+.prov-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#445566;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.prov-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#2d3748,transparent)}
+.prov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
 .prov-btn{
-  padding:6px 4px;border:1px solid var(--border-dark);border-radius:6px;
-  background:transparent;color:#8899aa;font-size:10px;font-weight:600;
-  transition:all 0.15s;text-align:center;
+  padding:8px 4px 7px;border:1px solid #1e2a38;border-radius:10px;
+  background:linear-gradient(160deg,#12181f,#0d1117);color:#5a7080;
+  font-size:9px;font-weight:700;transition:all 0.2s;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.3);position:relative;overflow:hidden;
 }
-.prov-btn:hover{border-color:#4a6080;color:#ccd}
-.prov-btn.active{
-  background:var(--cyan);border-color:var(--cyan);
-  color:#000;
+.prov-btn::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.2s;border-radius:10px}
+.prov-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.4);color:#aabbcc;border-color:#2d3748}
+.prov-btn:active{transform:scale(0.95)}
+.prov-btn .picon{font-size:14px;line-height:1}
+.prov-btn.active{border-color:var(--cyan);color:#000;background:var(--cyan);box-shadow:0 4px 14px rgba(0,212,255,0.35);transform:translateY(-1px)}
+.prov-btn.active-sw{border-color:var(--purple);color:#fff;background:linear-gradient(135deg,#9c6ee8,var(--purple));box-shadow:0 4px 14px rgba(179,136,255,0.35);transform:translateY(-1px)}
+.prov-btn.active-vo{border-color:#e040fb;color:#fff;background:linear-gradient(135deg,#cc30e8,#e040fb);box-shadow:0 4px 14px rgba(224,64,251,0.35);transform:translateY(-1px)}
+.prov-btn.active-pl{border-color:var(--green);color:#000;background:var(--green);box-shadow:0 4px 14px rgba(0,230,118,0.35);transform:translateY(-1px)}
+.prov-btn.active-at{border-color:var(--amber);color:#000;background:var(--amber);box-shadow:0 4px 14px rgba(255,171,0,0.35);transform:translateY(-1px)}
+.prov-btn.active-te{border-color:#7c4dff;color:#fff;background:linear-gradient(135deg,#6a3de8,#7c4dff);box-shadow:0 4px 14px rgba(124,77,255,0.35);transform:translateY(-1px)}
+.prov-status{
+  font-size:10px;color:#667788;text-align:center;
+  padding:6px 12px 8px;margin:6px 12px 0;
+  border-bottom:1px solid #1a2230;position:relative;z-index:1;
+  font-family:var(--mono);letter-spacing:0.5px;
 }
-.prov-btn.active-sw{background:var(--purple);border-color:var(--purple);color:#000}
-.prov-btn.active-vo{background:#e040fb;border-color:#e040fb;color:#fff}
-.prov-btn.active-pl{background:var(--green);border-color:var(--green);color:#000}
-.prov-btn.active-at{background:var(--amber);border-color:var(--amber);color:#000}
-.prov-btn.active-te{background:#7c4dff;border-color:#7c4dff;color:#fff}
-.prov-status{font-size:10px;color:var(--text3);text-align:center;padding:4px 0 8px;border-bottom:1px solid var(--border-dark);margin:0 14px;position:relative;z-index:1}
 
-/* Dialer */
-.dialer{padding:12px 14px;border-bottom:1px solid var(--border-dark);position:relative;z-index:1}
+/* ── PHONE DIALER ── */
+.dialer{padding:10px 12px 12px;border-bottom:1px solid #1a2230;position:relative;z-index:1}
 .sec-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .sec-label::before{content:'';display:inline-block;width:8px;height:1px;background:var(--cyan)}
-.field{margin-bottom:8px}
-.field label{display:block;font-size:10px;font-weight:600;color:#8899aa;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.5px}
-.field input,.field select{
-  width:100%;background:#0a0e14;border:1px solid #2d3748;
-  border-radius:6px;padding:8px 10px;color:#e8edf5;font-size:12px;
+
+/* Phone display screen */
+.phone-screen{
+  background:linear-gradient(135deg,#06090f,#0a0e16);
+  border:1px solid #1e3048;border-radius:12px;
+  padding:10px 12px 8px;margin-bottom:8px;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.5),0 0 0 1px #0d1825;
+}
+.phone-display{
+  font-family:var(--mono);font-size:22px;font-weight:400;
+  color:#00e8ff;letter-spacing:3px;text-align:center;
+  min-height:34px;display:flex;align-items:center;justify-content:center;
+  text-shadow:0 0 12px rgba(0,212,255,0.5);
+  cursor:text;
+}
+.phone-display.empty{color:#1e3a4a;font-size:14px;letter-spacing:1px}
+.phone-label-row{display:flex;gap:6px;margin-bottom:6px}
+.phone-label-row input,.phone-label-row select{
+  flex:1;background:#030609;border:1px solid #152030;
+  border-radius:6px;padding:6px 8px;color:#7a9ab0;font-size:11px;
   outline:none;transition:border-color 0.15s;font-family:var(--mono);
 }
-.field input:focus,.field select:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,212,255,0.1)}
-.field input::placeholder{color:#3a4a5a}
-.field select option{background:#0d1117}
+.phone-label-row input::placeholder{color:#1e3a4a}
+.phone-label-row input:focus,.phone-label-row select:focus{border-color:#00d4ff55}
+.phone-label-row select option{background:#0d1117}
 
-.btn-call{
-  width:100%;padding:11px;border:none;border-radius:8px;
-  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
-  color:#000;font-size:14px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:all 0.15s;letter-spacing:0.5px;font-family:var(--head);
-  margin-top:8px;
+/* Keypad */
+.keypad{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5px;
+  margin-bottom:8px;
 }
-.btn-call:hover{opacity:0.88;transform:translateY(-1px)}
-.btn-call:active{transform:scale(0.98)}
-.btn-call:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.key{
+  background:linear-gradient(160deg,#141c28,#0d1420);
+  border:1px solid #1e2e42;border-radius:10px;
+  padding:10px 4px 8px;text-align:center;cursor:pointer;
+  transition:all 0.12s;user-select:none;position:relative;overflow:hidden;
+}
+.key::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at center,rgba(0,212,255,0.12),transparent 70%);opacity:0;transition:opacity 0.12s;border-radius:10px}
+.key:hover{border-color:#2d4060;transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.4)}
+.key:active{transform:scale(0.93);background:linear-gradient(160deg,#0e1520,#08101a)}
+.key:active::after{opacity:1}
+.key-num{font-size:18px;font-weight:700;color:#c0d8e8;font-family:var(--head);line-height:1}
+.key-sub{font-size:7px;font-weight:600;color:#3a5468;letter-spacing:1.5px;margin-top:2px;text-transform:uppercase}
+.key.key-star .key-num,.key.key-hash .key-num{font-size:20px;color:#2a4a60}
+.key.key-call{
+  background:linear-gradient(135deg,#005a4a,#007a60);
+  border-color:#00a880;
+}
+.key.key-call:hover{background:linear-gradient(135deg,#006a58,#009070);box-shadow:0 4px 14px rgba(0,180,120,0.3)}
+.key.key-call .key-num{color:#00ffc8;font-size:20px}
+.key.key-del{background:linear-gradient(160deg,#1a1420,#120d18);border-color:#2a1e30}
+.key.key-del .key-num{color:#884466;font-size:16px}
+.key.key-del:hover{border-color:#cc4466;box-shadow:0 4px 10px rgba(180,40,60,0.2)}
 
 .btn-test{
   width:100%;margin-top:6px;padding:7px;background:transparent;
-  border:1px solid #2d3748;border-radius:6px;color:#8899aa;
+  border:1px solid #1e2a38;border-radius:7px;color:#556677;
   font-size:11px;transition:all 0.15s;
 }
 .btn-test:hover{border-color:var(--cyan);color:var(--cyan)}
 
 .msg-box{
-  margin-top:8px;padding:8px 10px;border-radius:6px;
+  margin-top:7px;padding:8px 10px;border-radius:6px;
   font-size:11px;font-weight:500;display:none;line-height:1.5;
 }
 .msg-box.err{background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.3);color:var(--red);display:block}
 .msg-box.ok{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);display:block}
 .msg-box.info{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--cyan);display:block}
 
-/* Stats */
-.stats{padding:10px 14px 0;position:relative;z-index:1}
-.stats-row{display:flex;gap:6px}
+/* ── STATS ── */
+.stats{padding:10px 12px 8px;position:relative;z-index:1}
+.stats-row{display:flex;gap:5px}
 .stat{
-  flex:1;background:#0a0e14;border:1px solid #1e2a38;
-  border-radius:8px;padding:8px 6px;text-align:center;
+  flex:1;border-radius:10px;padding:8px 4px;text-align:center;
+  background:linear-gradient(160deg,#0e1420,#090d14);
+  border:1px solid #1a2535;
 }
 .stat-n{font-size:22px;font-weight:700;font-family:var(--head);letter-spacing:1px}
-.stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:1px}
-
+.stat-l{font-size:9px;color:#3a5060;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px}
 .live-pill{
-  margin:10px 0 0;padding:5px 10px;
-  background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);
+  margin:8px 0 0;padding:5px 10px;
+  background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.18);
   border-radius:20px;display:flex;align-items:center;gap:6px;
   font-size:10px;color:var(--green);font-family:var(--mono);
 }
@@ -408,6 +444,34 @@ input,select,textarea{font-family:var(--body)}
 .dc-val{font-family:var(--mono);font-size:14px;color:var(--cyan2);margin-top:3px;letter-spacing:1px}
 .dur-badge{font-family:var(--mono);color:var(--text2);font-size:11px}
 
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:14px}
+.pg-btn{
+  padding:5px 10px;border:1px solid var(--border);border-radius:6px;
+  background:var(--panel);color:var(--text2);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all 0.15s;min-width:32px;text-align:center;
+}
+.pg-btn:hover{border-color:var(--cyan2);color:var(--cyan2)}
+.pg-btn.active-pg{background:var(--cyan2);border-color:var(--cyan2);color:#fff}
+.pg-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* Checkbox select */
+.log-cb{width:14px;height:14px;cursor:pointer;accent-color:var(--cyan2)}
+.bulk-bar{
+  display:none;align-items:center;gap:10px;
+  margin-bottom:10px;padding:8px 14px;
+  background:rgba(0,168,204,0.08);border:1px solid rgba(0,168,204,0.2);
+  border-radius:8px;font-size:12px;color:var(--text2);
+}
+.bulk-bar.show{display:flex}
+.bulk-count{font-weight:700;color:var(--cyan2)}
+.btn-bulk-del{
+  padding:4px 12px;border:1px solid rgba(255,82,82,0.4);border-radius:6px;
+  background:none;color:var(--red);font-size:11px;font-weight:600;cursor:pointer;
+  transition:all 0.15s;
+}
+.btn-bulk-del:hover{background:rgba(255,82,82,0.08)}
+
 /* ── SETTINGS ── */
 .cfg-sec{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
 .cfg-title{font-family:var(--head);font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
@@ -533,35 +597,64 @@ input,select,textarea{font-family:var(--body)}
   <div class="prov-switcher">
     <div class="prov-label">Active Provider</div>
     <div class="prov-grid">
-      <button class="prov-btn" id="pbtn-twilio" onclick="switchProvider('twilio')">Twilio</button>
-      <button class="prov-btn" id="pbtn-signalwire" onclick="switchProvider('signalwire')">Signal</button>
-      <button class="prov-btn" id="pbtn-vonage" onclick="switchProvider('vonage')">Vonage</button>
-      <button class="prov-btn" id="pbtn-plivo" onclick="switchProvider('plivo')">Plivo</button>
-      <button class="prov-btn" id="pbtn-africastalking" onclick="switchProvider('africastalking')">Africa's</button>
-      <button class="prov-btn" id="pbtn-telnyx" onclick="switchProvider('telnyx')">Telnyx</button>
+      <button class="prov-btn" id="pbtn-twilio" onclick="switchProvider('twilio')">
+        <span class="picon">📞</span>Twilio
+      </button>
+      <button class="prov-btn" id="pbtn-signalwire" onclick="switchProvider('signalwire')">
+        <span class="picon">⚡</span>Signal
+      </button>
+      <button class="prov-btn" id="pbtn-vonage" onclick="switchProvider('vonage')">
+        <span class="picon">💜</span>Vonage
+      </button>
+      <button class="prov-btn" id="pbtn-plivo" onclick="switchProvider('plivo')">
+        <span class="picon">🟢</span>Plivo
+      </button>
+      <button class="prov-btn" id="pbtn-africastalking" onclick="switchProvider('africastalking')">
+        <span class="picon">🌍</span>Africa's
+      </button>
+      <button class="prov-btn" id="pbtn-telnyx" onclick="switchProvider('telnyx')">
+        <span class="picon">🔷</span>Telnyx
+      </button>
     </div>
   </div>
-  <div class="prov-status" id="prov-status">Select a provider above</div>
+  <div class="prov-status" id="prov-status">SELECT PROVIDER ABOVE</div>
 
-  <!-- Dialer -->
+  <!-- Phone Dialer -->
   <div class="dialer">
     <div class="sec-label">New Call</div>
-    <div class="field">
-      <label>Customer Phone Number</label>
-      <input type="tel" id="phoneInput" placeholder="+1 555 000 0000"/>
+    <div class="phone-screen">
+      <!-- Display -->
+      <div id="phone-display" class="phone-display empty">ENTER NUMBER</div>
+      <!-- Label + Script row -->
+      <div class="phone-label-row" style="margin-top:8px">
+        <input type="text" id="labelInput" placeholder="Label / note"/>
+        <select id="scriptSelect" style="max-width:100px"></select>
+      </div>
     </div>
-    <div class="field">
-      <label>Label (optional)</label>
-      <input type="text" id="labelInput" placeholder="e.g. Invoice #042"/>
+
+    <!-- Keypad -->
+    <div class="keypad">
+      <div class="key" onclick="keyPress('1')"><div class="key-num">1</div><div class="key-sub"></div></div>
+      <div class="key" onclick="keyPress('2')"><div class="key-num">2</div><div class="key-sub">ABC</div></div>
+      <div class="key" onclick="keyPress('3')"><div class="key-num">3</div><div class="key-sub">DEF</div></div>
+      <div class="key" onclick="keyPress('4')"><div class="key-num">4</div><div class="key-sub">GHI</div></div>
+      <div class="key" onclick="keyPress('5')"><div class="key-num">5</div><div class="key-sub">JKL</div></div>
+      <div class="key" onclick="keyPress('6')"><div class="key-num">6</div><div class="key-sub">MNO</div></div>
+      <div class="key" onclick="keyPress('7')"><div class="key-num">7</div><div class="key-sub">PQRS</div></div>
+      <div class="key" onclick="keyPress('8')"><div class="key-num">8</div><div class="key-sub">TUV</div></div>
+      <div class="key" onclick="keyPress('9')"><div class="key-num">9</div><div class="key-sub">WXYZ</div></div>
+      <div class="key key-star" onclick="keyPress('+')"><div class="key-num">+</div><div class="key-sub"></div></div>
+      <div class="key" onclick="keyPress('0')"><div class="key-num">0</div><div class="key-sub"></div></div>
+      <div class="key key-del" onclick="keyBackspace()"><div class="key-num">⌫</div><div class="key-sub">DEL</div></div>
+      <!-- Bottom row: hash, call, clear -->
+      <div class="key key-hash" onclick="keyPress('#')"><div class="key-num">#</div><div class="key-sub"></div></div>
+      <div class="key key-call" id="callBtn" onclick="initiateCall()">
+        <div class="key-num" id="callBtnIcon">📲</div>
+        <div class="key-sub" id="callBtnText">CALL</div>
+      </div>
+      <div class="key" onclick="keyClear()" style="border-color:#1a1428"><div class="key-num" style="font-size:13px;color:#664455">CLR</div><div class="key-sub"></div></div>
     </div>
-    <div class="field">
-      <label>Script</label>
-      <select id="scriptSelect"></select>
-    </div>
-    <button class="btn-call" id="callBtn" onclick="initiateCall()">
-      <span id="callBtnIcon">📲</span>
-      <span id="callBtnText">CALL NOW</span>
-    </button>
+
     <button class="btn-test" onclick="testConn()">🔍 Test Connection</button>
     <div class="msg-box" id="callMsg"></div>
   </div>
@@ -1104,15 +1197,40 @@ function removeStep(i) {
   renderSteps();
 }
 
+// ─── Keypad ───────────────────────────────────────────────────────────────────
+var dialNumber = '';
+function keyPress(k) {
+  dialNumber += k;
+  updateDisplay();
+}
+function keyBackspace() {
+  dialNumber = dialNumber.slice(0, -1);
+  updateDisplay();
+}
+function keyClear() {
+  dialNumber = '';
+  updateDisplay();
+}
+function updateDisplay() {
+  var el = document.getElementById('phone-display');
+  if (!dialNumber) {
+    el.textContent = 'ENTER NUMBER';
+    el.className = 'phone-display empty';
+  } else {
+    el.textContent = dialNumber;
+    el.className = 'phone-display';
+  }
+}
+
 // ─── Call ─────────────────────────────────────────────────────────────────────
 function initiateCall() {
-  var phone = document.getElementById('phoneInput').value.trim();
+  var phone = dialNumber || '';
+  if (!phone) { showMsg('Please enter a phone number using the keypad.', 'err'); return; }
   var label = document.getElementById('labelInput').value.trim();
   var scriptId = document.getElementById('scriptSelect').value;
-  if (!phone) { showMsg('Please enter a phone number.', 'err'); return; }
   var btn = document.getElementById('callBtn');
-  btn.disabled = true;
-  document.getElementById('callBtnText').textContent = 'CALLING...';
+  btn.style.opacity = '0.5';
+  document.getElementById('callBtnText').textContent = '...';
   document.getElementById('callBtnIcon').textContent = '⏳';
   hideMsg();
   fetch('/api/call', {
@@ -1120,19 +1238,19 @@ function initiateCall() {
     body: JSON.stringify({phoneNumber:phone, label:label||'Call', scriptId:scriptId})
   }).then(function(r){ return r.json(); }).then(function(d) {
     if (d.success) {
-      showMsg('✅ Call started! Check the Monitor tab.', 'ok');
-      document.getElementById('phoneInput').value = '';
+      showMsg('✅ Call started! Watch the Monitor tab.', 'ok');
+      keyClear();
       document.getElementById('labelInput').value = '';
     } else {
       showMsg('❌ Error: ' + (d.error || 'Unknown error'), 'err');
     }
-    btn.disabled = false;
-    document.getElementById('callBtnText').textContent = 'CALL NOW';
+    btn.style.opacity = '1';
+    document.getElementById('callBtnText').textContent = 'CALL';
     document.getElementById('callBtnIcon').textContent = '📲';
   }).catch(function() {
     showMsg('❌ Cannot connect to server.', 'err');
-    btn.disabled = false;
-    document.getElementById('callBtnText').textContent = 'CALL NOW';
+    btn.style.opacity = '1';
+    document.getElementById('callBtnText').textContent = 'CALL';
     document.getElementById('callBtnIcon').textContent = '📲';
   });
 }
@@ -1208,8 +1326,9 @@ function renderMonitor() {
       coll += '</div>';
     }
     var dur = s.duration ? (Math.floor(s.duration/60) + 'm ' + (s.duration%60) + 's') : (isActive ? '<span style="color:var(--cyan2)">● Live</span>' : '—');
-    var endBtn = isActive ? '<button class="btn-sm end-call" onclick="endCall(\'' + s.callSid + '\')">⏹ End Call</button>' : '';
+    var endBtn = isActive ? '<button class="btn-sm end-call" onclick="endCall(\'' + s.callSid + '\')">⏹ End</button>' : '';
     var copyBtn = s.collected.length ? '<button class="btn-sm" onclick="copyData(\'' + s.callSid + '\')">📋 Copy</button>' : '';
+    var delBtn = '<button class="btn-sm" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="deleteSession(\'' + s.callSid + '\')">🗑 Delete</button>';
     var statusLine = s.statusDetail ? '<div class="status-line"><span class="sdot' + (isActive?' active':'') + '"></span>' + s.statusDetail + '</div>' : '';
 
     card.className = 'ccard s-' + s.status.replace(/[^a-z-]/g,'');
@@ -1218,8 +1337,15 @@ function renderMonitor() {
       '<div class="ccard-right"><div class="ctime">' + new Date(s.startTime).toLocaleTimeString() + '</div>' + badge + '</div>' +
       '</div>' +
       '<div class="ccard-body">' + prog + coll + statusLine + '</div>' +
-      '<div class="ccard-foot"><div class="cdetail-txt">' + dur + '</div><div class="cactions">' + endBtn + copyBtn + '</div></div>';
+      '<div class="ccard-foot"><div class="cdetail-txt">' + dur + '</div><div class="cactions">' + endBtn + copyBtn + delBtn + '</div></div>';
   });
+}
+
+function deleteSession(sid) {
+  sessions = sessions.filter(function(s){ return s.callSid !== sid; });
+  var card = document.getElementById('mc-' + sid);
+  if (card) card.remove();
+  if (!sessions.length) document.getElementById('empty-mon').style.display = 'flex';
 }
 
 function copyData(sid) {
@@ -1231,30 +1357,51 @@ function copyData(sid) {
 }
 
 // ─── Logs ─────────────────────────────────────────────────────────────────────
+var logsPage = 1;
+var logsPerPage = 15;
+var selectedLogs = {};
+
 function loadLogs() {
   fetch('/api/logs').then(function(r){ return r.json(); }).then(function(l) {
     logs = l;
+    logsPage = 1;
+    selectedLogs = {};
     renderLogs();
   });
 }
 
 function renderLogs() {
   var c = document.getElementById('logs-container');
-  if (!logs.length) { c.innerHTML = '<div class="no-logs">📭 No call logs yet. Logs appear here after every call.</div>'; return; }
-  var rows = logs.map(function(l) {
+  if (!logs.length) { c.innerHTML = '<div class="no-logs">📭 No call logs yet.</div>'; return; }
+
+  var totalPages = Math.ceil(logs.length / logsPerPage);
+  var start = (logsPage - 1) * logsPerPage;
+  var pageLogs = logs.slice(start, start + logsPerPage);
+  var selCount = Object.keys(selectedLogs).filter(function(k){ return selectedLogs[k]; }).length;
+
+  // Bulk bar
+  var bulkHtml = '<div class="bulk-bar' + (selCount>0?' show':'') + '" id="bulk-bar">' +
+    '<span class="bulk-count">' + selCount + ' selected</span>' +
+    '<button class="btn-bulk-del" onclick="bulkDeleteLogs()">🗑 Delete Selected</button>' +
+    '<button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px" onclick="clearSelection()">Clear</button>' +
+    '</div>';
+
+  var rows = pageLogs.map(function(l) {
     var dur = l.duration ? (Math.floor(l.duration/60) + 'm ' + (l.duration%60) + 's') : '—';
     var t = new Date(l.startTime).toLocaleString();
     var hasData = l.collected && l.collected.length > 0;
     var expandBtn = hasData ? '<button class="log-expand-btn" onclick="toggleDetail(\'' + l.id + '\')">View ▾</button>' : '—';
+    var checked = selectedLogs[l.id] ? ' checked' : '';
     var detailRow = '';
     if (hasData) {
       var chips = l.collected.map(function(c) {
         return '<div class="detail-chip"><div class="dc-label">' + c.label + '</div><div class="dc-val">' + c.value + '</div></div>';
       }).join('');
-      detailRow = '<tr class="log-detail-row" id="ldr-' + l.id + '"><td colspan="9" class="log-detail-cell"><div class="detail-chips">' + chips + '</div></td></tr>';
+      detailRow = '<tr class="log-detail-row" id="ldr-' + l.id + '"><td colspan="10" class="log-detail-cell"><div class="detail-chips">' + chips + '</div></td></tr>';
     }
     var provColor = {twilio:'var(--cyan2)',signalwire:'var(--purple)',vonage:'#e040fb',plivo:'var(--green2)',africastalking:'var(--amber)',telnyx:'#7c4dff'};
     return '<tr>' +
+      '<td><input type="checkbox" class="log-cb"' + checked + ' onchange="toggleSelect(\'' + l.id + '\',this.checked)"/></td>' +
       '<td style="font-family:var(--mono);font-weight:700">' + l.phone + '</td>' +
       '<td>' + l.label + '</td>' +
       '<td style="color:var(--text2);font-size:11px">' + (l.scriptName||'—') + '</td>' +
@@ -1266,7 +1413,69 @@ function renderLogs() {
       '<td><button class="btn-sm" style="color:var(--red);border-color:rgba(255,82,82,0.3)" onclick="deleteLog(\'' + l.id + '\')">🗑</button></td>' +
       '</tr>' + detailRow;
   }).join('');
-  c.innerHTML = '<div class="log-wrap"><table class="log-table"><thead><tr><th>Phone</th><th>Label</th><th>Script</th><th>Provider</th><th>Status</th><th>Duration</th><th>Time</th><th>Data</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+  // Pagination
+  var pgHtml = '<div class="pagination">';
+  pgHtml += '<button class="pg-btn" onclick="gotoPage(' + (logsPage-1) + ')"' + (logsPage<=1?' disabled':'') + '>‹ Prev</button>';
+  var startPg = Math.max(1, logsPage-2);
+  var endPg = Math.min(totalPages, startPg+4);
+  for (var p=startPg;p<=endPg;p++) {
+    pgHtml += '<button class="pg-btn' + (p===logsPage?' active-pg':'') + '" onclick="gotoPage(' + p + ')">' + p + '</button>';
+  }
+  pgHtml += '<button class="pg-btn" onclick="gotoPage(' + (logsPage+1) + ')"' + (logsPage>=totalPages?' disabled':'') + '>Next ›</button>';
+  pgHtml += '</div>';
+
+  c.innerHTML = bulkHtml +
+    '<div class="log-wrap"><table class="log-table">' +
+    '<thead><tr>' +
+    '<th><input type="checkbox" class="log-cb" onchange="selectAll(this.checked)"/></th>' +
+    '<th>Phone</th><th>Label</th><th>Script</th><th>Provider</th><th>Status</th><th>Duration</th><th>Time</th><th>Data</th><th></th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    (totalPages > 1 ? pgHtml : '');
+}
+
+function gotoPage(p) {
+  var totalPages = Math.ceil(logs.length / logsPerPage);
+  if (p < 1 || p > totalPages) return;
+  logsPage = p;
+  renderLogs();
+}
+
+function toggleSelect(id, checked) {
+  selectedLogs[id] = checked;
+  var selCount = Object.keys(selectedLogs).filter(function(k){ return selectedLogs[k]; }).length;
+  var bar = document.getElementById('bulk-bar');
+  if (bar) {
+    bar.className = 'bulk-bar' + (selCount>0?' show':'');
+    var cnt = bar.querySelector('.bulk-count');
+    if (cnt) cnt.textContent = selCount + ' selected';
+  }
+}
+
+function selectAll(checked) {
+  var totalPages = Math.ceil(logs.length / logsPerPage);
+  var start = (logsPage - 1) * logsPerPage;
+  var pageLogs = logs.slice(start, start + logsPerPage);
+  pageLogs.forEach(function(l){ selectedLogs[l.id] = checked; });
+  renderLogs();
+}
+
+function clearSelection() {
+  selectedLogs = {};
+  renderLogs();
+}
+
+async function bulkDeleteLogs() {
+  var ids = Object.keys(selectedLogs).filter(function(k){ return selectedLogs[k]; });
+  if (!ids.length) return;
+  if (!confirm('Delete ' + ids.length + ' selected log(s)?')) return;
+  for (var i=0; i<ids.length; i++) {
+    await fetch('/api/logs/' + ids[i], {method:'DELETE'});
+  }
+  logs = logs.filter(function(l){ return !selectedLogs[l.id]; });
+  selectedLogs = {};
+  if (logsPage > Math.ceil(logs.length/logsPerPage)) logsPage = Math.max(1,Math.ceil(logs.length/logsPerPage));
+  renderLogs();
 }
 
 function toggleDetail(id) {
