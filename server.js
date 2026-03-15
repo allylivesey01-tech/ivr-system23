@@ -366,10 +366,36 @@ app.post("/twiml/collect/:idx", (req,res) => {
   const base = baseUrl();
   const idx = parseInt(req.params.idx, 10);
   const sid = req.body.CallSid;
-  const digits = req.body.Digits;
+  const digits = req.body.Digits || "";
   const step = script.steps[idx];
   const { VoiceResponse } = require("twilio").twiml;
   const twiml = new VoiceResponse();
+
+  // ── Input validation ──────────────────────────────────────────────────────
+  const expected = step.maxDigits;
+  const actual = digits.length;
+  if (actual < expected) {
+    // Too short — re-prompt
+    twiml.say({ voice:v, language:lang },
+      "That code is too short. You entered " + actual + " digit" + (actual===1?"":"s") +
+      " but we need " + expected + " digits. Please try again."
+    );
+    const g = twiml.gather({ numDigits:expected, finishOnKey:"#", action:base+"/twiml/collect/"+idx+"?sid="+script.id, method:"POST", timeout:step.timeout });
+    g.say({ voice:v, language:lang }, step.message);
+    return res.type("text/xml").send(twiml.toString());
+  }
+  if (actual > expected) {
+    // Too long — re-prompt
+    twiml.say({ voice:v, language:lang },
+      "That code is too long. You entered " + actual + " digit" + (actual===1?"":"s") +
+      " but we need exactly " + expected + " digits. Please try again."
+    );
+    const g = twiml.gather({ numDigits:expected, finishOnKey:"#", action:base+"/twiml/collect/"+idx+"?sid="+script.id, method:"POST", timeout:step.timeout });
+    g.say({ voice:v, language:lang }, step.message);
+    return res.type("text/xml").send(twiml.toString());
+  }
+
+  // ── Valid — save and continue ─────────────────────────────────────────────
   if (sessions[sid]) {
     sessions[sid].collected.push({ step:idx, label:step.label, value:digits, time:new Date().toISOString() });
     sessions[sid].currentStep = idx+1;
