@@ -554,19 +554,20 @@ app.post("/twiml/status",(req,res)=>{
   res.sendStatus(200);
 });
 
+// Start server immediately - never block on Redis
 const PORT = process.env.PORT || 3000;
-async function startServer() {
-  console.log("\n🔄 Loading data from MongoDB...");
-  await loadAuthAsync();
-  await loadSettingsAsync();
-  await loadScriptsAsync();
-  await loadLogsAsync();
-  await loadLoginLogsAsync();
-  console.log("✅ Data loaded");
-  app.listen(PORT, () => console.log("✅ Epewon Pro → http://localhost:" + PORT + "\n"));
-}
-startServer().catch(err => {
-  console.error("Startup error:", err);
-  // Start anyway with defaults
-  app.listen(PORT, () => console.log("✅ Epewon Pro (no DB) → http://localhost:" + PORT + "\n"));
+app.listen(PORT, () => {
+  console.log("✅ Epewon Pro → http://localhost:" + PORT);
+  // Load persisted data from Redis in background after server is up
+  Promise.all([
+    loadAuthAsync(),
+    loadSettingsAsync(),
+    loadScriptsAsync(),
+    loadLogsAsync(),
+    loadLoginLogsAsync()
+  ]).then(function() {
+    console.log("✅ Redis data loaded");
+  }).catch(function(e) {
+    console.log("⚠️ Redis load failed, using defaults:", e.message);
+  });
 });
