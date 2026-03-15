@@ -1512,9 +1512,14 @@ function initiateCall() {
     body: JSON.stringify({phoneNumber:phone, label:label||'Call', scriptId:scriptId})
   }).then(function(r){ return r.json(); }).then(function(d) {
     if (d.success) {
-      showMsg('✅ Call started! Watch the Monitor tab.', 'ok');
+      showMsg('✅ Calling... switched to Monitor tab.', 'ok');
       keyClear();
       document.getElementById('labelInput').value = '';
+      // Auto-switch to monitor tab immediately
+      var monTab = document.querySelector('.tab');
+      switchTab('monitor', monTab);
+      // Force a poll immediately so call appears right away
+      pollSessions();
     } else {
       showMsg('❌ Error: ' + (d.error || 'Unknown error'), 'err');
     }
