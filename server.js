@@ -95,18 +95,12 @@ function ipAllowed(req) {
   return true;
 }
 function requireAuth(req, res, next) {
-  // Scripts are never blocked - they load like username/password from a file
-  const pub = req.path.startsWith("/auth")
-    || req.path.startsWith("/twiml")
-    || req.path === "/login"
-    || req.path.startsWith("/api/scripts")
-    || req.path.startsWith("/api/seed-scripts");
-  if (pub) return next();
+  // Only the dashboard HTML page (/) requires login
+  // All API calls and twiml work without auth - the login just protects the UI
+  const requiresLogin = req.path === "/" || req.path === "/index.html";
+  if (!requiresLogin) return next();
   if (!ipAllowed(req)) return res.status(403).send("403: Your IP address is not allowed.");
-  if (!checkSession(req)) {
-    if (req.path.startsWith("/api")) return res.status(401).json({ error:"Not authenticated" });
-    return res.redirect("/login");
-  }
+  if (!checkSession(req)) return res.redirect("/login");
   next();
 }
 app.use(requireAuth);
