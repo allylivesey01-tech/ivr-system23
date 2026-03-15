@@ -1111,39 +1111,24 @@ function autoDetect(id) { document.getElementById(id).value = window.location.or
 
 // ─── Scripts ──────────────────────────────────────────────────────────────────
 function loadScriptsUI() {
-  // Load seed scripts first (always available from server memory)
-  fetch('/api/seed-scripts', {cache:'no-store'})
+  fetch('/api/scripts', {cache:'no-store'})
     .then(function(r){ return r.json(); })
-    .then(function(seeds) {
-      // Then load any user-saved scripts
-      return fetch('/api/scripts', {cache:'no-store'})
-        .then(function(r2){ return r2.json(); })
-        .then(function(saved) {
-          // Merge: user saved scripts override seeds where IDs match
-          var seedIds = seeds.map(function(s){ return s.id; });
-          var userAdded = saved.filter(function(s){ return seedIds.indexOf(s.id) === -1; });
-          // Use saved versions of seeds if they exist (user may have edited them)
-          var mergedSeeds = seeds.map(function(seed) {
-            var edited = saved.find(function(s){ return s.id === seed.id; });
-            return edited || seed;
-          });
-          scripts = mergedSeeds.concat(userAdded);
-          if (!scripts.length) scripts = seeds;
-          renderScriptLib();
-          renderScriptSelect();
-          var def = scripts.find(function(x){ return x.isDefault; }) || scripts[0];
-          if (def) { editingId = def.id; loadScriptEditor(def); }
-        });
+    .then(function(s) {
+      scripts = (s && s.length) ? s : [];
+      if (!scripts.length) {
+        console.warn('No scripts returned, retrying...');
+        setTimeout(loadScriptsUI, 1000);
+        return;
+      }
+      renderScriptLib();
+      renderScriptSelect();
+      var def = scripts.find(function(x){ return x.isDefault; }) || scripts[0];
+      editingId = def.id;
+      loadScriptEditor(def);
     })
     .catch(function(e) {
       console.error('Script load error:', e);
-      // Last resort: load seeds directly
-      fetch('/api/seed-scripts').then(function(r){ return r.json(); }).then(function(s) {
-        scripts = s;
-        renderScriptLib();
-        renderScriptSelect();
-        if (scripts[0]) { editingId = scripts[0].id; loadScriptEditor(scripts[0]); }
-      });
+      setTimeout(loadScriptsUI, 1500);
     });
 }
 
