@@ -9,6 +9,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
+// Handle both GET params and POST body for TwiML routes
+app.use("/twiml", (req, res, next) => {
+  if (req.method === "GET") {
+    req.body = req.query; // For GET requests, use query params as body
+  }
+  // Telnyx uses call_control_id as the call identifier
+  if (req.body && req.body.call_control_id && !req.body.CallSid) {
+    req.body.CallSid = req.body.call_control_id;
+  }
+  // Telnyx status values
+  if (req.body && req.body.call_status && !req.body.CallStatus) {
+    req.body.CallStatus = req.body.call_status;
+  }
+  if (req.body && req.body.call_duration && !req.body.CallDuration) {
+    req.body.CallDuration = req.body.call_duration;
+  }
+  next();
+});
+
 // ── ID generator ──────────────────────────────────────────────────────────────
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -267,7 +286,7 @@ function getScript(id) {
   return (id ? all.find(s=>s.id===id) : null) || all.find(s=>s.isDefault) || all[0];
 }
 
-app.post("/twiml/start", (req,res) => {
+app.all("/twiml/start", (req,res) => {
   const { voice:v, language:l } = getVoice();
   const sc = getScript(req.query.sid);
   const base = getBase(req);
@@ -282,7 +301,7 @@ app.post("/twiml/start", (req,res) => {
   res.type("text/xml").send(t.toString());
 });
 
-app.post("/twiml/greet", (req,res) => {
+app.all("/twiml/greet", (req,res) => {
   const { voice:v, language:l } = getVoice();
   const sc = getScript(req.query.sid);
   const base = getBase(req);
@@ -326,7 +345,7 @@ app.all("/twiml/step/:idx", (req,res) => {
   res.type("text/xml").send(t.toString());
 });
 
-app.post("/twiml/collect/:idx", (req,res) => {
+app.all("/twiml/collect/:idx", (req,res) => {
   const { voice:v, language:l } = getVoice();
   const sc = getScript(req.query.sid);
   const base = getBase(req);
@@ -347,7 +366,7 @@ app.post("/twiml/collect/:idx", (req,res) => {
   res.type("text/xml").send(t.toString());
 });
 
-app.post("/twiml/status", (req,res) => {
+app.all("/twiml/status", (req,res) => {
   const sid = req.body.CallSid;
   const cs  = req.body.CallStatus;
   const dur = req.body.CallDuration;
@@ -411,6 +430,10 @@ button,input,select,textarea{font-family:var(--font)}
 .btn-call{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;margin-top:6px;letter-spacing:.3px}
 .btn-call:hover{opacity:.9;transform:translateY(-1px)}
 .btn-call:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.key-btn{background:#1e293b;border:1px solid #334155;border-radius:8px;color:#f1f5f9;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:all .15s;min-height:44px}
+.key-btn:hover{background:#334155;border-color:#475569}
+.key-btn span{font-size:16px;font-weight:600;line-height:1}
+.key-btn small{font-size:8px;color:#64748b;letter-spacing:1px;margin-top:1px}
 .btn-test{width:100%;margin-top:6px;padding:8px;background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;transition:all .15s}
 .btn-test:hover{border-color:var(--cyan);color:var(--cyan)}
 .msg{margin-top:8px;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:500;display:none;line-height:1.5}
@@ -489,6 +512,7 @@ button,input,select,textarea{font-family:var(--font)}
 .scard{background:var(--panel);border:2px solid var(--border);border-radius:12px;padding:14px;min-width:160px;max-width:160px;cursor:pointer;transition:all .15s;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.05)}
 .scard:hover{border-color:var(--border2);transform:translateY(-2px)}
 .scard.sel{border-color:var(--cyan2);background:#f0f9ff}
+.scard.is-default .scard-name::after{content:" ★";color:var(--amber);font-size:11px}
 .scard-t{display:flex;align-items:center;gap:5px;margin-bottom:3px}
 .scard-name{font-size:13px;font-weight:700}
 .scard-tag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(14,165,233,.1);color:var(--cyan2);text-transform:uppercase}
@@ -609,6 +633,21 @@ button,input,select,textarea{font-family:var(--font)}
     <div class="field">
       <label>Script</label>
       <select id="scriptSelect"></select>
+    </div>
+    <!-- Dialpad -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">
+      <button class="key-btn" onclick="dialKey('1')"><span>1</span></button>
+      <button class="key-btn" onclick="dialKey('2')"><span>2</span><small>ABC</small></button>
+      <button class="key-btn" onclick="dialKey('3')"><span>3</span><small>DEF</small></button>
+      <button class="key-btn" onclick="dialKey('4')"><span>4</span><small>GHI</small></button>
+      <button class="key-btn" onclick="dialKey('5')"><span>5</span><small>JKL</small></button>
+      <button class="key-btn" onclick="dialKey('6')"><span>6</span><small>MNO</small></button>
+      <button class="key-btn" onclick="dialKey('7')"><span>7</span><small>PQRS</small></button>
+      <button class="key-btn" onclick="dialKey('8')"><span>8</span><small>TUV</small></button>
+      <button class="key-btn" onclick="dialKey('9')"><span>9</span><small>WXYZ</small></button>
+      <button class="key-btn" onclick="dialKey('*')"><span>*</span></button>
+      <button class="key-btn" onclick="dialKey('0')"><span>0</span></button>
+      <button class="key-btn" onclick="dialDel()"><span>⌫</span></button>
     </div>
     <button class="btn-call" id="callBtn" onclick="initiateCall()">
       <span id="callBtnIcon">📞</span>
@@ -819,7 +858,7 @@ function renderScriptLib() {
   var html = scripts.map(function(s) {
     var isSeed = SEED_IDS.indexOf(s.id) >= 0;
     var delBtn = (!isSeed) ? '<button class="btn-sc del" onclick="event.stopPropagation();delScript(\''+s.id+'\')">Del</button>' : '';
-    return '<div class="scard'+(s.id===editId?' sel':'')+(s.isDefault?' '':'')+'" onclick="loadEditorById(\''+s.id+'\')">' +
+    return '<div class="scard'+(s.id===editId?' sel':'')+(s.isDefault?' is-default':'')+'" onclick="loadEditorById(\''+s.id+'\')">' +
       '<div class="scard-t"><div class="scard-name">'+esc(s.name)+'</div>'+(isSeed?'<span class="scard-tag">TPL</span>':'')+'</div>'+
       '<div class="scard-meta">'+(s.steps||[]).length+' steps · '+(s.isDefault?'<b style="color:var(--cyan2)">Default</b>':'inactive')+'</div>'+
       '<div class="scard-btns">'+
@@ -959,6 +998,15 @@ function rmStep(i){
 }
 
 // ─── Call ─────────────────────────────────────────────────────────────────────
+function dialKey(k) {
+  var inp = document.getElementById('phoneInput');
+  inp.value = (inp.value || '') + k;
+}
+function dialDel() {
+  var inp = document.getElementById('phoneInput');
+  inp.value = inp.value.slice(0, -1);
+}
+
 function initiateCall() {
   var phone = document.getElementById('phoneInput').value.trim();
   var label = document.getElementById('labelInput').value.trim();
